@@ -32,7 +32,15 @@ app.get('/api/rooms/:roomId', (request, response) => {
 const server = app.listen(port, () => {
     console.log(`Backend listening on http://localhost:${port}`);
 });
+// Log every HTTP Upgrade attempt so we can confirm whether the request reaches
+// the backend at all (regardless of WebSocket handshake outcome).
+server.on('upgrade', (request) => {
+    console.log(`[upgrade] ${request.method} ${request.url} — headers: ${JSON.stringify(request.headers)}`);
+});
 const wss = new WebSocketServer({ server });
+wss.on('connection', (_socket, request) => {
+    console.log(`[ws connected] path=${request.url}`);
+});
 const joinSchema = z.object({
     type: z.literal('join_room'),
     roomId: z.string().min(1),
