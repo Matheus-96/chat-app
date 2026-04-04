@@ -1,0 +1,42 @@
+:root {
+  font-family: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #1f1a16;
+  background:
+    radial-gradient(circle at top left, rgba(244, 181, 98, 0.36), transparent 22%),
+    radial-gradient(circle at top right, rgba(105, 196, 255, 0.22), transparent 24%),
+    linear-gradient(180deg, #f8f1e7 0%, #efe3d2 46%, #e9d9c7 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+p,
+h1,
+h2 {
+  margin: 0;
+}

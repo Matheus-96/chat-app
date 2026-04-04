@@ -1,0 +1,27 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chat-backend
+    environment:
+      PORT: 3001
+      FRONTEND_ORIGIN: http://localhost:5173
+      OPENROUTER_MODEL: openai/gpt-4o-mini
+      OPENROUTER_HTTP_REFERER: http://localhost:5173
+      OPENROUTER_APP_NAME: Chat Writing Coach MVP
+      DEFAULT_OPENROUTER_API_KEY: ${DEFAULT_OPENROUTER_API_KEY:-}
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chat-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    restart: unless-stopped
