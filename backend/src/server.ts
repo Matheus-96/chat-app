@@ -42,7 +42,11 @@ const server = app.listen(port, () => {
   console.log(`Backend listening on http://localhost:${port}`)
 })
 
-const wss = new WebSocketServer({ server, path: '/ws' })
+const wsServers = [
+  new WebSocketServer({ server, path: '/ws' }),
+  // Backward-compatibility for older frontend builds/proxies that still connect on /rooms.
+  new WebSocketServer({ server, path: '/rooms' }),
+]
 
 const joinSchema = z.object({
   type: z.literal('join_room'),
@@ -113,8 +117,12 @@ function send(socket: WebSocket, event: ServerEvent) {
   }
 }
 
+function getAllSockets() {
+  return wsServers.flatMap((server) => Array.from(server.clients))
+}
+
 function socketsInRoom(roomId: string) {
-  return Array.from(wss.clients).filter((socket) => {
+  return getAllSockets().filter((socket) => {
     const socketId = (socket as WebSocket & { socketId?: string }).socketId
 
     if (!socketId) {
@@ -214,7 +222,7 @@ async function processCoachAnalysis(args: {
   }
 }
 
-wss.on('connection', (socket) => {
+function registerSocketHandlers(socket: WebSocket) {
   const wsSocket = socket as WebSocket & { socketId?: string }
   wsSocket.socketId = crypto.randomUUID()
   const socketId = wsSocket.socketId
@@ -383,7 +391,11 @@ wss.on('connection', (socket) => {
       participants: result.participants,
     })
   })
-})
+}
+
+for (const wsServer of wsServers) {
+  wsServer.on('connection', registerSocketHandlers)
+}
 
 setInterval(() => {
   const removedRooms = store.cleanupExpiredRooms()
