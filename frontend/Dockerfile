@@ -5,9 +5,8 @@ RUN npm i
 COPY . .
 RUN npm run build
 
-FROM alpine:3.20 AS runner
-RUN apk add --no-cache lighttpd
-COPY lighttpd.conf /etc/lighttpd/lighttpd.conf
-COPY --from=build /app/dist /var/www/localhost/htdocs
+FROM nginx:1.27-alpine AS runner
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
-CMD ["lighttpd", "-D", "-f", "/etc/lighttpd/lighttpd.conf"]
+CMD ["nginx", "-g", "daemon off;"]

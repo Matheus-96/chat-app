@@ -11,8 +11,6 @@ services:
       OPENROUTER_HTTP_REFERER: https://chat.14121996.xyz
       OPENROUTER_APP_NAME: Chat Writing Coach MVP
       DEFAULT_OPENROUTER_API_KEY: ${DEFAULT_OPENROUTER_API_KEY:-}
-    ports:
-      - "3001:3001"
     restart: unless-stopped
 
   frontend:
