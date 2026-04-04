@@ -32,7 +32,11 @@ app.get('/api/rooms/:roomId', (request, response) => {
 const server = app.listen(port, () => {
     console.log(`Backend listening on http://localhost:${port}`);
 });
-const wss = new WebSocketServer({ server, path: '/ws' });
+const wsServers = [
+    new WebSocketServer({ server, path: '/ws' }),
+    // Backward-compatibility for older frontend builds/proxies that still connect on /rooms.
+    new WebSocketServer({ server, path: '/rooms' }),
+];
 const joinSchema = z.object({
     type: z.literal('join_room'),
     roomId: z.string().min(1),
@@ -61,8 +65,11 @@ function send(socket, event) {
         socket.send(JSON.stringify(event));
     }
 }
+function getAllSockets() {
+    return wsServers.flatMap((server) => Array.from(server.clients));
+}
 function socketsInRoom(roomId) {
-    return Array.from(wss.clients).filter((socket) => {
+    return getAllSockets().filter((socket) => {
         const socketId = socket.socketId;
         if (!socketId) {
             return false;
@@ -141,7 +148,7 @@ async function processCoachAnalysis(args) {
         console.error('Writing feedback failed:', error);
     }
 }
-wss.on('connection', (socket) => {
+function registerSocketHandlers(socket) {
     const wsSocket = socket;
     wsSocket.socketId = crypto.randomUUID();
     const socketId = wsSocket.socketId;
@@ -278,7 +285,10 @@ wss.on('connection', (socket) => {
             participants: result.participants,
         });
     });
-});
+}
+for (const wsServer of wsServers) {
+    wsServer.on('connection', registerSocketHandlers);
+}
 setInterval(() => {
     const removedRooms = store.cleanupExpiredRooms();
     if (removedRooms > 0) {

@@ -9,6 +9,8 @@ const STANDARD_SYSTEM_PROMPT = [
     'Always return valid JSON with the shape {"correctedText":"...","explanation":"..."}.',
     'Keep the explanation concise and didactic.',
     'If the sentence is already natural and correct, keep correctedText very close to the original and explain why it works.',
+    'Keep the explanation focused on the most important correction, not minor stylistic suggestions.',
+    'Dont change the way the sentence is written more than necessary in correctedText, we want to preserve the user style as much as possible.',
 ].join(' ');
 const REWRITE_SYSTEM_PROMPT = [
     'You are an English writing coach helping a user improve through active rewriting practice.',
