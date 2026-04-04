@@ -23,10 +23,27 @@ const TYPING_DEBOUNCE_MS = 1500
 
 function getParticipantId(roomId: string) {
   const key = `chat-writing-coach.participant.${roomId}`
-  const existing = sessionStorage.getItem(key)
+  const fallbackId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.slice(0, 8)
+
+  let existing: string | null = null
+  try {
+    existing = sessionStorage.getItem(key)
+  } catch {
+    return fallbackId
+  }
+
   if (existing) return existing
-  const id = crypto.randomUUID().slice(0, 8)
-  sessionStorage.setItem(key, id)
+
+  const id = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+    ? crypto.randomUUID().slice(0, 8)
+    : fallbackId
+
+  try {
+    sessionStorage.setItem(key, id)
+  } catch {
+    return id
+  }
+
   return id
 }
 
