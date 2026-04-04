@@ -32,11 +32,7 @@ app.get('/api/rooms/:roomId', (request, response) => {
 const server = app.listen(port, () => {
     console.log(`Backend listening on http://localhost:${port}`);
 });
-const wsServers = [
-    new WebSocketServer({ server, path: '/ws' }),
-    // Backward-compatibility for older frontend builds/proxies that still connect on /rooms.
-    new WebSocketServer({ server, path: '/rooms' }),
-];
+const wss = new WebSocketServer({ server });
 const joinSchema = z.object({
     type: z.literal('join_room'),
     roomId: z.string().min(1),
@@ -65,11 +61,8 @@ function send(socket, event) {
         socket.send(JSON.stringify(event));
     }
 }
-function getAllSockets() {
-    return wsServers.flatMap((server) => Array.from(server.clients));
-}
 function socketsInRoom(roomId) {
-    return getAllSockets().filter((socket) => {
+    return Array.from(wss.clients).filter((socket) => {
         const socketId = socket.socketId;
         if (!socketId) {
             return false;
@@ -286,9 +279,7 @@ function registerSocketHandlers(socket) {
         });
     });
 }
-for (const wsServer of wsServers) {
-    wsServer.on('connection', registerSocketHandlers);
-}
+wss.on('connection', registerSocketHandlers);
 setInterval(() => {
     const removedRooms = store.cleanupExpiredRooms();
     if (removedRooms > 0) {
