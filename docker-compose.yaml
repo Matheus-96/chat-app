@@ -6,9 +6,9 @@ services:
     container_name: chat-backend
     environment:
       PORT: 3001
-      FRONTEND_ORIGIN: http://localhost:5173
+      FRONTEND_ORIGIN: https://chat.14121996.xyz
       OPENROUTER_MODEL: openai/gpt-4o-mini
-      OPENROUTER_HTTP_REFERER: http://localhost:5173
+      OPENROUTER_HTTP_REFERER: https://chat.14121996.xyz
       OPENROUTER_APP_NAME: Chat Writing Coach MVP
       DEFAULT_OPENROUTER_API_KEY: ${DEFAULT_OPENROUTER_API_KEY:-}
     ports:
