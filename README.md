@@ -44,6 +44,9 @@ Variaveis opcionais:
 
 ## Fluxo implementado
 
+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
+
+
 1. Informar nome e chave OpenRouter no frontend.
 2. Criar uma sala e copiar o link.
 3. Entrar na sala por WebSocket.
