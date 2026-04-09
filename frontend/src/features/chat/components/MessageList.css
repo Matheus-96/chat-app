@@ -1,0 +1,24 @@
+.message-list {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.2rem;
+  align-content: start;
+}
+
+.message-list__empty {
+  padding: 1rem 1.2rem;
+  border-radius: 20px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.message-list__typing {
+  position: sticky;
+  bottom: 0;
+  margin: 0;
+  padding-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

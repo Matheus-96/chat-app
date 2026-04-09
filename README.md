@@ -1,6 +1,6 @@
 # Chat Writing Coach
 
-MVP de chat em tempo real para pratica de writing em ingles, com salas compartilhadas por link e feedback privado da IA para quem enviou a mensagem.
+MVP de chat em tempo real para pratica de writing em ingles, com salas compartilhadas por codigo curto e feedback de IA integrado ao fluxo da conversa.
 
 ## Stack inicial
 
@@ -44,55 +44,43 @@ Variaveis opcionais:
 
 ## Fluxo implementado
 
-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
-
-
-1. Informar nome e chave OpenRouter no frontend.
-2. Criar uma sala e copiar o link.
-3. Entrar na sala por WebSocket.
+1. Informar nome e chave OpenRouter na landing page.
+2. Criar uma sala e receber um roomCode curto para compartilhar.
+3. Entrar na sala por URL ou pelo codigo curto.
 4. Enviar mensagens publicas em tempo real.
-5. Receber uma mensagem privada do coach com a frase corrigida e a explicacao.
+5. Receber a correcao do coach vinculada a mensagem original na timeline da sala.
 
 ## Estado atual da implementacao
 
-- Backend com endpoints HTTP: `GET /health`, `POST /api/rooms`, `GET /api/rooms/:roomId`.
-- Realtime em `ws` com eventos de snapshot da sala, atualizacao de participantes e mensagens.
-- Correcao de writing executada em paralelo no envio da mensagem.
-- Mensagem do coach enviada como privada para o autor da mensagem original.
-- Identidade por aba corrigida com `sessionStorage` para evitar conflito entre participantes no mesmo navegador.
+- Frontend com landing page e pagina de sala separadas por rota.
+- Backend com endpoints HTTP: `GET /health`, `POST /api/rooms`, `GET /api/rooms/:roomId`, `GET /api/rooms/code/:roomCode`.
+- Realtime em `ws` com eventos de snapshot da sala, atualizacao de participantes, digitacao, mensagens e mudanca do modo do agente.
+- Modo do agente por participante com opcoes `Automatico` e `Manual`.
+- Correcao de writing executada automaticamente ou por acao manual, sem reenviar a mensagem original.
+- Correcao do coach exibida na timeline da sala ligada a `replyToMessageId`.
+- Identidade por aba mantida com `sessionStorage` para evitar conflito entre participantes no mesmo navegador.
 
-## Mudancas planejadas para a proxima iteracao
+## Interface atual
 
-### Menu de opcoes do chat
+### Landing page
 
-Adicionar um menu no chat com modo de analise do coach:
+- Explicacao do produto.
+- Inputs de nome e API Key.
+- Criacao de nova sala.
+- Entrada em sala existente por codigo curto ou URL.
 
-- `Automatico`: toda mensagem enviada dispara o coach automaticamente.
-- `Manual`: o envio da mensagem nao dispara analise; o usuario clica em uma acao ao lado da propria mensagem para solicitar analise.
+### Pagina de chat
 
-Regra de visibilidade mantida: a resposta do coach continua privada para o autor.
-
-### Separacao de paginas
-
-Dividir a experiencia em duas paginas:
-
-- `Landing page`:
-	- Explicacao basica do produto.
-	- Input de nome do usuario.
-	- Input para nome/codigo da sala existente.
-	- Botao para conectar em sala existente.
-	- Botao para criar nova sala.
-- `Pagina de chat`:
-	- Conversa em tempo real.
-	- Lista de participantes.
-	- Composer de mensagem.
-	- Menu do coach (Automatico/Manual).
-	- Acao de "Analisar com coach" por mensagem no modo Manual.
+- Painel lateral com modo do agente, participantes e informacoes da sala.
+- Composer fixo com suporte a `Ctrl+Enter` no modo Manual.
+- Baloes de mensagem com correcao vinculada e popover de explicacao.
+- Botao por mensagem para `Analisar com agente` no modo Manual.
+- Indicador de digitacao, notificacao do navegador e som de nova mensagem.
 
 ## Limites atuais
 
 - Persistencia somente em memoria no backend.
 - TTL de 24 horas por sala, renovado por atividade.
-- Correcoes privadas apenas para o autor da mensagem.
+- Correcoes exibidas para quem estiver na sala.
 - Sem autenticacao e sem persistencia real de historico entre reinicios do servidor.
-- Fluxo ainda em pagina unica (landing e chat ainda nao estao separados).
+- Sem banco de dados, moderacao ou historico longo.

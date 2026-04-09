@@ -1,0 +1,33 @@
+.room-page {
+  height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(290px, 340px) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.room-page__chat {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border-radius: 28px;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+}
+
+.room-page__error {
+  margin: 0;
+  padding: 0.9rem 1.1rem;
+  color: #ffb2a7;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 107, 107, 0.12);
+}
+
+@media (max-width: 900px) {
+  .room-page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: 0.75rem;
+  }
+}

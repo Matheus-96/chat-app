@@ -1,12 +1,16 @@
-import { nanoid } from 'nanoid'
+import { customAlphabet, nanoid } from 'nanoid'
 
 export type MessageRole = 'user' | 'assistant'
 export type MessageVisibility = 'public' | 'private'
+export type AgentMode = 'automatic' | 'manual'
+
+const createRoomCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6)
 
 export interface ParticipantPresence {
   participantId: string
   name: string
   connectedAt: string
+  agentMode: AgentMode
 }
 
 export interface RoomMessage {
@@ -26,6 +30,7 @@ export interface RoomMessage {
 
 export interface RoomRecord {
   id: string
+  roomCode: string
   createdAt: string
   updatedAt: string
   expiresAt: string
@@ -50,14 +55,18 @@ const MAX_MESSAGES_PER_WINDOW = 10
 export class ChatStore {
   private readonly rooms = new Map<string, RoomRecord>()
 
+  private readonly roomCodeIndex = new Map<string, string>()
+
   private readonly connections = new Map<string, ConnectionRecord>()
 
   createRoom() {
     const roomId = nanoid(10)
+    const roomCode = this.generateRoomCode()
     const now = new Date().toISOString()
 
     const room: RoomRecord = {
       id: roomId,
+      roomCode,
       createdAt: now,
       updatedAt: now,
       expiresAt: new Date(Date.now() + ROOM_TTL_MS).toISOString(),
@@ -66,6 +75,7 @@ export class ChatStore {
     }
 
     this.rooms.set(roomId, room)
+    this.roomCodeIndex.set(roomCode, roomId)
     return room
   }
 
@@ -93,6 +103,7 @@ export class ChatStore {
 
     return {
       id: room.id,
+      roomCode: room.roomCode,
       createdAt: room.createdAt,
       expiresAt: room.expiresAt,
       participantCount: room.participants.size,
@@ -100,23 +111,31 @@ export class ChatStore {
     }
   }
 
-  joinRoom(socketId: string, roomId: string, participantId: string, name: string) {
-    const room = this.getRoom(roomId)
+  getRoomMetaByCode(roomCode: string) {
+    const room = this.getRoomByCode(roomCode)
+    return room ? this.getRoomMeta(room.id) : null
+  }
+
+  joinRoom(socketId: string, roomCode: string, participantId: string, name: string) {
+    const room = this.getRoomByCode(roomCode)
 
     if (!room) {
       return null
     }
 
     const connectedAt = new Date().toISOString()
+    const existingParticipant = room.participants.get(participantId)
+
     room.participants.set(participantId, {
       participantId,
       name,
       connectedAt,
+      agentMode: existingParticipant?.agentMode ?? 'automatic',
     })
 
     this.connections.set(socketId, {
       socketId,
-      roomId,
+      roomId: room.id,
       participantId,
       joinedAt: Date.now(),
       recentMessages: [],
@@ -127,8 +146,8 @@ export class ChatStore {
     return {
       room,
       participantId,
-      messages: this.getVisibleMessages(roomId, participantId),
-      participants: this.getParticipants(roomId),
+      messages: this.getVisibleMessages(room.id, participantId),
+      participants: this.getParticipants(room.id),
     }
   }
 
@@ -165,6 +184,28 @@ export class ChatStore {
 
   getConnection(socketId: string) {
     return this.connections.get(socketId) ?? null
+  }
+
+  setParticipantAgentMode(roomId: string, participantId: string, agentMode: AgentMode) {
+    const room = this.getRoom(roomId)
+
+    if (!room) {
+      return null
+    }
+
+    const participant = room.participants.get(participantId)
+
+    if (!participant) {
+      return null
+    }
+
+    room.participants.set(participantId, {
+      ...participant,
+      agentMode,
+    })
+
+    this.touchRoom(room)
+    return this.getParticipants(roomId)
   }
 
   canSendMessage(socketId: string) {
@@ -205,12 +246,7 @@ export class ChatStore {
 
   getParticipants(roomId: string) {
     const room = this.getRoom(roomId)
-
-    if (!room) {
-      return []
-    }
-
-    return Array.from(room.participants.values())
+    return room ? Array.from(room.participants.values()) : []
   }
 
   getVisibleMessages(roomId: string, participantId: string) {
@@ -227,12 +263,19 @@ export class ChatStore {
 
   getRoomMessage(roomId: string, messageId: string) {
     const room = this.getRoom(roomId)
+    return room ? room.messages.find((message) => message.id === messageId) ?? null : null
+  }
+
+  hasReplyForMessage(roomId: string, messageId: string) {
+    const room = this.getRoom(roomId)
 
     if (!room) {
-      return null
+      return false
     }
 
-    return room.messages.find((message) => message.id === messageId) ?? null
+    return room.messages.some((message) => (
+      message.role === 'assistant' && message.replyToMessageId === messageId
+    ))
   }
 
   cleanupExpiredRooms() {
@@ -248,6 +291,12 @@ export class ChatStore {
   }
 
   private deleteRoom(roomId: string) {
+    const room = this.rooms.get(roomId)
+
+    if (room) {
+      this.roomCodeIndex.delete(room.roomCode)
+    }
+
     this.rooms.delete(roomId)
 
     for (const [socketId, connection] of this.connections.entries()) {
@@ -260,5 +309,20 @@ export class ChatStore {
   private touchRoom(room: RoomRecord) {
     room.updatedAt = new Date().toISOString()
     room.expiresAt = new Date(Date.now() + ROOM_TTL_MS).toISOString()
+  }
+
+  private getRoomByCode(roomCode: string) {
+    const roomId = this.roomCodeIndex.get(roomCode.trim().toUpperCase())
+    return roomId ? this.getRoom(roomId) : null
+  }
+
+  private generateRoomCode() {
+    let roomCode = createRoomCode()
+
+    while (this.roomCodeIndex.has(roomCode)) {
+      roomCode = createRoomCode()
+    }
+
+    return roomCode
   }
 }

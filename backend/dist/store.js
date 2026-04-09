@@ -1,16 +1,20 @@
-import { nanoid } from 'nanoid';
+import { customAlphabet, nanoid } from 'nanoid';
+const createRoomCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6);
 const HOUR_IN_MS = 60 * 60 * 1000;
 export const ROOM_TTL_MS = 24 * HOUR_IN_MS;
 const MESSAGE_RATE_WINDOW_MS = 15 * 1000;
 const MAX_MESSAGES_PER_WINDOW = 10;
 export class ChatStore {
     rooms = new Map();
+    roomCodeIndex = new Map();
     connections = new Map();
     createRoom() {
         const roomId = nanoid(10);
+        const roomCode = this.generateRoomCode();
         const now = new Date().toISOString();
         const room = {
             id: roomId,
+            roomCode,
             createdAt: now,
             updatedAt: now,
             expiresAt: new Date(Date.now() + ROOM_TTL_MS).toISOString(),
@@ -18,6 +22,7 @@ export class ChatStore {
             participants: new Map(),
         };
         this.rooms.set(roomId, room);
+        this.roomCodeIndex.set(roomCode, roomId);
         return room;
     }
     getRoom(roomId) {
@@ -38,26 +43,33 @@ export class ChatStore {
         }
         return {
             id: room.id,
+            roomCode: room.roomCode,
             createdAt: room.createdAt,
             expiresAt: room.expiresAt,
             participantCount: room.participants.size,
             messageCount: room.messages.filter((message) => message.visibility === 'public').length,
         };
     }
-    joinRoom(socketId, roomId, participantId, name) {
-        const room = this.getRoom(roomId);
+    getRoomMetaByCode(roomCode) {
+        const room = this.getRoomByCode(roomCode);
+        return room ? this.getRoomMeta(room.id) : null;
+    }
+    joinRoom(socketId, roomCode, participantId, name) {
+        const room = this.getRoomByCode(roomCode);
         if (!room) {
             return null;
         }
         const connectedAt = new Date().toISOString();
+        const existingParticipant = room.participants.get(participantId);
         room.participants.set(participantId, {
             participantId,
             name,
             connectedAt,
+            agentMode: existingParticipant?.agentMode ?? 'automatic',
         });
         this.connections.set(socketId, {
             socketId,
-            roomId,
+            roomId: room.id,
             participantId,
             joinedAt: Date.now(),
             recentMessages: [],
@@ -66,8 +78,8 @@ export class ChatStore {
         return {
             room,
             participantId,
-            messages: this.getVisibleMessages(roomId, participantId),
-            participants: this.getParticipants(roomId),
+            messages: this.getVisibleMessages(room.id, participantId),
+            participants: this.getParticipants(room.id),
         };
     }
     disconnect(socketId) {
@@ -93,6 +105,22 @@ export class ChatStore {
     }
     getConnection(socketId) {
         return this.connections.get(socketId) ?? null;
+    }
+    setParticipantAgentMode(roomId, participantId, agentMode) {
+        const room = this.getRoom(roomId);
+        if (!room) {
+            return null;
+        }
+        const participant = room.participants.get(participantId);
+        if (!participant) {
+            return null;
+        }
+        room.participants.set(participantId, {
+            ...participant,
+            agentMode,
+        });
+        this.touchRoom(room);
+        return this.getParticipants(roomId);
     }
     canSendMessage(socketId) {
         const connection = this.connections.get(socketId);
@@ -123,10 +151,7 @@ export class ChatStore {
     }
     getParticipants(roomId) {
         const room = this.getRoom(roomId);
-        if (!room) {
-            return [];
-        }
-        return Array.from(room.participants.values());
+        return room ? Array.from(room.participants.values()) : [];
     }
     getVisibleMessages(roomId, participantId) {
         const room = this.getRoom(roomId);
@@ -137,10 +162,14 @@ export class ChatStore {
     }
     getRoomMessage(roomId, messageId) {
         const room = this.getRoom(roomId);
+        return room ? room.messages.find((message) => message.id === messageId) ?? null : null;
+    }
+    hasReplyForMessage(roomId, messageId) {
+        const room = this.getRoom(roomId);
         if (!room) {
-            return null;
+            return false;
         }
-        return room.messages.find((message) => message.id === messageId) ?? null;
+        return room.messages.some((message) => (message.role === 'assistant' && message.replyToMessageId === messageId));
     }
     cleanupExpiredRooms() {
         const expiredIds = Array.from(this.rooms.values())
@@ -152,6 +181,10 @@ export class ChatStore {
         return expiredIds.length;
     }
     deleteRoom(roomId) {
+        const room = this.rooms.get(roomId);
+        if (room) {
+            this.roomCodeIndex.delete(room.roomCode);
+        }
         this.rooms.delete(roomId);
         for (const [socketId, connection] of this.connections.entries()) {
             if (connection.roomId === roomId) {
@@ -162,5 +195,16 @@ export class ChatStore {
     touchRoom(room) {
         room.updatedAt = new Date().toISOString();
         room.expiresAt = new Date(Date.now() + ROOM_TTL_MS).toISOString();
+    }
+    getRoomByCode(roomCode) {
+        const roomId = this.roomCodeIndex.get(roomCode.trim().toUpperCase());
+        return roomId ? this.getRoom(roomId) : null;
+    }
+    generateRoomCode() {
+        let roomCode = createRoomCode();
+        while (this.roomCodeIndex.has(roomCode)) {
+            roomCode = createRoomCode();
+        }
+        return roomCode;
     }
 }

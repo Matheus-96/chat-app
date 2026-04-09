@@ -18,8 +18,17 @@ app.post('/api/rooms', (_request, response) => {
     const room = store.createRoom();
     response.status(201).json({
         roomId: room.id,
+        roomCode: room.roomCode,
         expiresAt: room.expiresAt,
     });
+});
+app.get('/api/rooms/code/:roomCode', (request, response) => {
+    const room = store.getRoomMetaByCode(request.params.roomCode);
+    if (!room) {
+        response.status(404).json({ message: 'Sala nao encontrada ou expirada.' });
+        return;
+    }
+    response.json(room);
 });
 app.get('/api/rooms/:roomId', (request, response) => {
     const room = store.getRoomMeta(request.params.roomId);
@@ -32,8 +41,6 @@ app.get('/api/rooms/:roomId', (request, response) => {
 const server = app.listen(port, () => {
     console.log(`Backend listening on http://localhost:${port}`);
 });
-// Log every HTTP Upgrade attempt so we can confirm whether the request reaches
-// the backend at all (regardless of WebSocket handshake outcome).
 server.on('upgrade', (request) => {
     console.log(`[upgrade] ${request.method} ${request.url} — headers: ${JSON.stringify(request.headers)}`);
 });
@@ -43,7 +50,7 @@ wss.on('connection', (_socket, request) => {
 });
 const joinSchema = z.object({
     type: z.literal('join_room'),
-    roomId: z.string().min(1),
+    roomCode: z.string().trim().min(1).max(16).transform((value) => value.toUpperCase()),
     participantId: z.string().min(1),
     name: z.string().trim().min(1).max(32),
 });
@@ -60,6 +67,10 @@ const analyzeMessageSchema = z.object({
     apiKey: z.string().trim().min(1).optional(),
     analysisMode: z.enum(['standard', 'rewrite']).optional(),
 });
+const setAgentModeSchema = z.object({
+    type: z.literal('set_agent_mode'),
+    agentMode: z.enum(['automatic', 'manual']),
+});
 const typingSchema = z.object({
     type: z.literal('typing'),
     isTyping: z.boolean(),
@@ -75,8 +86,7 @@ function socketsInRoom(roomId) {
         if (!socketId) {
             return false;
         }
-        const connection = store.getConnection(socketId);
-        return connection?.roomId === roomId;
+        return store.getConnection(socketId)?.roomId === roomId;
     });
 }
 function broadcastRoom(roomId, event) {
@@ -87,21 +97,21 @@ function broadcastRoom(roomId, event) {
 function sendError(socket, message) {
     send(socket, { type: 'error', message });
 }
-function createAssistantFailureMessage(roomId, participantId) {
+function createAssistantFailureMessage(roomId, messageId) {
     return store.addMessage({
         roomId,
         role: 'assistant',
         authorId: 'coach',
         authorName: 'Coach',
-        content: 'Nao consegui revisar sua frase desta vez.',
+        content: 'Nao consegui revisar essa mensagem desta vez.',
         explanation: 'Confira se a chave do OpenRouter e valida ou tente novamente em alguns segundos.',
-        visibility: 'private',
-        visibleToParticipantId: participantId,
+        replyToMessageId: messageId,
+        visibility: 'public',
     });
 }
 async function processCoachAnalysis(args) {
-    const { socket, roomId, participantId, userMessage, apiKey, analysisMode } = args;
-    send(socket, {
+    const { roomId, userMessage, apiKey, analysisMode } = args;
+    broadcastRoom(roomId, {
         type: 'correction_started',
         messageId: userMessage.id,
     });
@@ -119,29 +129,28 @@ async function processCoachAnalysis(args) {
             content: feedback.correctedText,
             explanation: feedback.explanation,
             replyToMessageId: userMessage.id,
-            visibility: 'private',
-            visibleToParticipantId: participantId,
+            visibility: 'public',
             analysisMode: analysisMode ?? 'standard',
         });
-        send(socket, {
+        broadcastRoom(roomId, {
             type: 'correction_finished',
             messageId: userMessage.id,
         });
         if (assistantMessage) {
-            send(socket, {
+            broadcastRoom(roomId, {
                 type: 'message_created',
                 message: assistantMessage,
             });
         }
     }
     catch (error) {
-        const assistantMessage = createAssistantFailureMessage(roomId, participantId);
-        send(socket, {
+        const assistantMessage = createAssistantFailureMessage(roomId, userMessage.id);
+        broadcastRoom(roomId, {
             type: 'correction_finished',
             messageId: userMessage.id,
         });
         if (assistantMessage) {
-            send(socket, {
+            broadcastRoom(roomId, {
                 type: 'message_created',
                 message: assistantMessage,
             });
@@ -166,8 +175,8 @@ function registerSocketHandlers(socket) {
         if (maybeTyping.success) {
             const connection = store.getConnection(socketId);
             if (connection) {
-                const participants = store.getParticipants(connection.roomId);
-                const author = participants.find((p) => p.participantId === connection.participantId);
+                const author = store.getParticipants(connection.roomId)
+                    .find((participant) => participant.participantId === connection.participantId);
                 if (author) {
                     for (const peer of socketsInRoom(connection.roomId)) {
                         if (peer !== socket) {
@@ -185,7 +194,7 @@ function registerSocketHandlers(socket) {
         }
         const maybeJoin = joinSchema.safeParse(parsedPayload);
         if (maybeJoin.success) {
-            const joined = store.joinRoom(socketId, maybeJoin.data.roomId, maybeJoin.data.participantId, maybeJoin.data.name);
+            const joined = store.joinRoom(socketId, maybeJoin.data.roomCode, maybeJoin.data.participantId, maybeJoin.data.name);
             if (!joined) {
                 sendError(socket, 'Sala nao encontrada ou expirada.');
                 return;
@@ -193,6 +202,7 @@ function registerSocketHandlers(socket) {
             send(socket, {
                 type: 'room_snapshot',
                 roomId: joined.room.id,
+                roomCode: joined.room.roomCode,
                 expiresAt: joined.room.expiresAt,
                 participantId: joined.participantId,
                 participants: joined.participants,
@@ -201,6 +211,24 @@ function registerSocketHandlers(socket) {
             broadcastRoom(joined.room.id, {
                 type: 'participant_update',
                 participants: joined.participants,
+            });
+            return;
+        }
+        const maybeSetAgentMode = setAgentModeSchema.safeParse(parsedPayload);
+        if (maybeSetAgentMode.success) {
+            const connection = store.getConnection(socketId);
+            if (!connection) {
+                sendError(socket, 'Voce precisa entrar em uma sala antes de alterar o modo do agente.');
+                return;
+            }
+            const participants = store.setParticipantAgentMode(connection.roomId, connection.participantId, maybeSetAgentMode.data.agentMode);
+            if (!participants) {
+                sendError(socket, 'Nao foi possivel atualizar o modo do agente.');
+                return;
+            }
+            broadcastRoom(connection.roomId, {
+                type: 'participant_update',
+                participants,
             });
             return;
         }
@@ -219,8 +247,8 @@ function registerSocketHandlers(socket) {
             sendError(socket, 'Voce atingiu o limite temporario de mensagens. Tente novamente em alguns segundos.');
             return;
         }
-        const participants = store.getParticipants(connection.roomId);
-        const author = participants.find((participant) => participant.participantId === connection.participantId);
+        const author = store.getParticipants(connection.roomId)
+            .find((participant) => participant.participantId === connection.participantId);
         if (!author) {
             sendError(socket, 'Participante nao encontrado para esta conexao.');
             return;
@@ -242,11 +270,10 @@ function registerSocketHandlers(socket) {
                 type: 'message_created',
                 message: userMessage,
             });
-            if (maybeSendMessage.data.analyze ?? true) {
+            const shouldAnalyze = maybeSendMessage.data.analyze ?? author.agentMode === 'automatic';
+            if (shouldAnalyze) {
                 await processCoachAnalysis({
-                    socket,
                     roomId: connection.roomId,
-                    participantId: connection.participantId,
                     userMessage,
                     apiKey: maybeSendMessage.data.apiKey,
                     analysisMode: maybeSendMessage.data.analysisMode,
@@ -267,10 +294,12 @@ function registerSocketHandlers(socket) {
             sendError(socket, 'Voce so pode analisar mensagens proprias.');
             return;
         }
+        if (store.hasReplyForMessage(connection.roomId, maybeAnalyzeMessage.data.messageId)) {
+            sendError(socket, 'Esta mensagem ja foi analisada.');
+            return;
+        }
         await processCoachAnalysis({
-            socket,
             roomId: connection.roomId,
-            participantId: connection.participantId,
             userMessage: existingMessage,
             apiKey: maybeAnalyzeMessage.data.apiKey,
             analysisMode: maybeAnalyzeMessage.data.analysisMode,

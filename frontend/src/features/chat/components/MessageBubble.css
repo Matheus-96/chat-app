@@ -1,0 +1,81 @@
+.message-bubble {
+  display: flex;
+}
+
+.message-bubble--own {
+  justify-content: flex-end;
+}
+
+.message-bubble__card {
+  max-width: min(42rem, 88%);
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem 1.1rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.message-bubble--own .message-bubble__card {
+  background: rgba(255, 159, 90, 0.14);
+}
+
+.message-bubble__author,
+.message-bubble__content,
+.message-bubble__status,
+.message-bubble__corrected,
+.message-bubble__details p {
+  margin: 0;
+}
+
+.message-bubble__author {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.message-bubble__action {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+}
+
+.message-bubble__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.message-bubble__divider span {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.message-bubble__details summary {
+  list-style: none;
+  cursor: pointer;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.message-bubble__details summary::-webkit-details-marker {
+  display: none;
+}
+
+.message-bubble__details p {
+  margin-top: 0.55rem;
+  padding: 0.75rem;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--muted);
+}
+
+.message-bubble__corrected {
+  color: var(--success);
+}
