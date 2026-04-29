@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { createRoom, fetchRoomByCode, normalizeRoomCode } from '../../shared/api/rooms'
 import { loadStoredProfile, saveProfile } from '../../shared/storage/profile'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
 import './LandingPage.css'
 
 export function LandingPage() {
@@ -78,28 +81,31 @@ export function LandingPage() {
       </section>
 
       <section className="landing-card">
-        <label>
-          <span>Nome</span>
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Como voce aparece na sala" />
-        </label>
-        <label>
-          <span>API Key OpenRouter</span>
-          <input value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="sk-or-v1-..." />
-        </label>
-        <label>
-          <span>Codigo ou link da sala</span>
-          <input value={roomCode} onChange={(event) => setRoomCode(event.target.value)} placeholder="AB12CD ou URL completa" />
-        </label>
-        {error ? <p className="landing-card__error">{error}</p> : null}
-        <div className="landing-card__actions">
-          <button disabled={busyAction !== null} onClick={handleCreateRoom} type="button">
-            {busyAction === 'create' ? 'Criando...' : 'Criar nova sala'}
-          </button>
-          <button className="landing-card__ghost" disabled={busyAction !== null} onClick={handleJoinRoom} type="button">
-            {busyAction === 'join' ? 'Entrando...' : 'Entrar em sala existente'}
-          </button>
-        </div>
-      </section>
+        <Card>
+          <div className="p-6 space-y-4">
+            <label className="space-y-1.5">
+              <span>Nome</span>
+              <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Como voce aparece na sala" />
+            </label>
+            <label className="space-y-1.5">
+              <span>API Key OpenRouter</span>
+              <Input value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="sk-or-v1-..." />
+            </label>
+            <label className="space-y-1.5">
+              <span>Codigo ou link da sala</span>
+              <Input value={roomCode} onChange={(event) => setRoomCode(event.target.value)} placeholder="AB12CD ou URL completa" />
+            </label>
+            {error ? <p className="landing-card__error">{error}</p> : null}
+            <div className="landing-card__actions space-y-2 pt-2">
+              <Button disabled={busyAction !== null} onClick={handleCreateRoom}>
+                {busyAction === 'create' ? 'Criando...' : 'Criar nova sala'}
+              </Button>
+              <Button variant="ghost" disabled={busyAction !== null} onClick={handleJoinRoom}>
+                {busyAction === 'join' ? 'Entrando...' : 'Entrar em sala existente'}
+              </Button>
+            </div>
+          </div>
+        </Card>
     </main>
   )
 }
