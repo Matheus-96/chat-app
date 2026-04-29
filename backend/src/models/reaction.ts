@@ -4,10 +4,10 @@
  * Emoji enum mirroring the frontend set of allowed reactions.
  */
 export enum Emoji {
-  Like = "👍",
-  Love = "❤️",
-  Laugh = "😂",
-  Sad = "😢",
+  THUMBS_UP = '👍',
+  THUMBS_DOWN = '👎',
+  LAUGH = '😂',
+  HEART = '❤️',
 }
 
 /**
