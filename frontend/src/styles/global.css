@@ -24,10 +24,7 @@
 }
 
 * {
-  border-color: var(--border);
-  outline: 1px solid var(--ring);
-  outline-offset: -1px;
-  opacity: 0.5;
+  /* No global border or outline */
 }
 
 body {
