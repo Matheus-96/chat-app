@@ -106,6 +106,7 @@ export function LandingPage() {
             </div>
           </div>
         </Card>
+        </section>
     </main>
   )
 }
