@@ -39,4 +39,5 @@ export interface ReactionSummary {
 /**
  * Exported types for both client and server modules.
  */
+export { Emoji, Reaction, ReactionSummary };
 
