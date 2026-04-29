@@ -1,3 +1,5 @@
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 import { useEffect, useRef, useState } from 'react'
 import type { AgentMode } from '../../../shared/ws/protocol'
 import './Composer.css'
@@ -51,10 +53,21 @@ export function Composer(props: ComposerProps) {
 
   return (
     <footer className="composer">
-      <textarea disabled={props.disabled} maxLength={800} onBlur={() => props.onTyping(false)} onChange={(event) => handleChange(event.target.value)} onKeyDown={handleKeyDown} placeholder="Escreva sua mensagem em ingles..." rows={1} value={value} />
+      <Textarea
+        disabled={props.disabled}
+        maxLength={800}
+        onBlur={() => props.onTyping(false)}
+        onChange={(event) => handleChange(event.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Escreva sua mensagem em ingles..."
+        rows={1}
+        value={value}
+      />
       <div className="composer__meta">
         <span>{props.agentMode === 'manual' ? 'Ctrl+Enter envia com analise' : 'Analise automatica ligada'}</span>
-        <button disabled={props.disabled} onClick={() => submit(props.agentMode === 'manual' ? false : undefined)} type="button">Enviar</button>
+        <Button disabled={props.disabled} onClick={() => submit(props.agentMode === 'manual' ? false : undefined)}>
+          Enviar
+        </Button>
       </div>
     </footer>
   )

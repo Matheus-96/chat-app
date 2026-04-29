@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button'
 import type { RoomMessage } from '../../../shared/ws/protocol'
 import './MessageBubble.css'
 
