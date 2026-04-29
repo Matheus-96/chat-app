@@ -30,4 +30,5 @@ export interface Reaction {
 export type ReactionCounts = Record<Emoji, number>;
 
 // Export types for consumption by other modules
+export { Emoji, Reaction, ReactionCounts };
 
