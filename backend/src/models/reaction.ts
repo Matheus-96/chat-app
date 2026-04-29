@@ -13,6 +13,7 @@ export enum Emoji {
 /**
  * Reaction entity stored in the backend.
  * Represents a participant's reaction to a specific message.
+ * Note: Each participant may have at most one reaction per message.
  */
 export interface Reaction {
   /** Unique identifier of the participant */
@@ -27,3 +28,6 @@ export interface Reaction {
  * Aggregated counts of reactions per emoji for a message.
  */
 export type ReactionCounts = Record<Emoji, number>;
+
+// Export types for consumption by other modules
+export type { Emoji, Reaction, ReactionCounts };
