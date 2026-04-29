@@ -1,35 +1,42 @@
-// Reactions data structures shared between frontend and backend
+// Reaction related types shared between frontend and backend
 
 /**
- * Emoji enum representing the curated set of allowed reactions.
- * Add or remove emojis here to change the available reactions.
+ * Emoji set that can be used for reactions.
+ * Extend this enum when new emojis are added to the UI.
  */
 export enum Emoji {
-  // 👍 Like
-  Like = "👍",
-  // ❤️ Love
-  Love = "❤️",
-  // 😂 Laugh
-  Laugh = "😂",
-  // 😢 Sad
-  Sad = "😢",
+  THUMBS_UP = '👍',
+  THUMBS_DOWN = '👎',
+  LAUGH = '😂',
+  HEART = '❤️',
 }
 
 /**
- * Reaction represents a single emoji reaction from a participant to a message.
- * The system enforces a one‑reaction‑per‑user‑per‑message rule elsewhere.
+ * Represents a reaction from a participant.
+ * Each participant may have at most one reaction per message.
  */
 export interface Reaction {
-  /** Unique identifier of the participant who reacted */
-  userId: string;
-  /** Identifier of the message being reacted to */
+  /** Unique identifier of the message being reacted to */
   messageId: string;
-  /** The emoji chosen from the {@link Emoji} set */
+  /** User identifier of the participant who reacted */
+  userId: string;
+  /** The selected emoji */
   emoji: Emoji;
 }
 
 /**
- * Utility type for aggregating reaction counts per emoji.
- * Example: { [Emoji.Like]: 3, [Emoji.Love]: 1 }
+ * Aggregated reaction counts for a message.
  */
-export type ReactionCounts = Record<Emoji, number>;
+export interface ReactionSummary {
+  /** Message identifier */
+  messageId: string;
+  /** Map from emoji to count */
+  counts: Record<Emoji, number>;
+  /** Set of userIds that have reacted (for one-reaction-per-user enforcement) */
+  users: Record<string, Emoji>;
+}
+
+/**
+ * Exported types for both client and server modules.
+ */
+export type { Emoji, Reaction, ReactionSummary };
