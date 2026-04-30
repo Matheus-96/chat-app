@@ -38,7 +38,7 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({ messageId }) => {
               onClick={() => handleSelect(emoji as Emoji)}
               aria-label={`React with ${emoji}`}
             >
-              {emoji} {count > 0 && <span>{count}</span>}
+              {emoji}{count > 0 && <span>{count}</span>}
             </Button>
           ))}
         </div>
