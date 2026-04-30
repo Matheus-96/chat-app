@@ -3,7 +3,7 @@ import * as React from "react";
 import { Emoji, ReactionSummary } from "@/lib/reactions";
 import { Button } from "./button";
 import { ReactionPicker } from "./ReactionPicker";
-import { useReactions } from "../hooks/useReactions";
+import { useReactions } from "../../hooks/useReactions";
 
 interface ReactionBarProps {
   /** id of the message we are reacting to */
