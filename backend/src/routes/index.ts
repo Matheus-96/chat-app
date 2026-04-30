@@ -1,7 +1,9 @@
-import { Router } from 'express'
-import reactionsRouter from './reactions'
+import { Router } from 'express';
+import reactionsRouter from './reactions';
 
-const router = Router()
-router.use(reactionsRouter)
+const router = Router();
 
-export default router
+// Mount reactions under messages path
+router.use('/api/messages', reactionsRouter);
+
+export default router;
