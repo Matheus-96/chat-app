@@ -33,6 +33,12 @@ export function RoomPage() {
     }
   }, [navigate, normalizedCode, profile.name])
 
+  useEffect(() => {
+    if (state.expired) {
+      navigate('/', { state: { expired: true }, replace: true })
+    }
+  }, [state.expired, navigate])
+
   async function handleCopyLink() {
     await navigator.clipboard.writeText(buildRoomLink(normalizedCode))
     setNotice('Link copiado para compartilhar a sala.')

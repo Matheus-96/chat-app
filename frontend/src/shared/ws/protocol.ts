@@ -1,5 +1,5 @@
 export type AgentMode = 'automatic' | 'manual'
-export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
+export type ConnectionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
 
 export interface ParticipantPresence {
   participantId: string
@@ -28,6 +28,7 @@ export type ServerEvent =
   | { type: 'correction_started'; messageId: string }
   | { type: 'correction_finished'; messageId: string }
   | { type: 'typing'; participantId: string; name: string; isTyping: boolean }
+  | { type: 'room_expired' }
   | { type: 'error'; message: string }
 
 export type ClientEvent =
