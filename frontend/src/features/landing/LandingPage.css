@@ -87,6 +87,18 @@
   color: #ff9b8f;
 }
 
+.landing-page__expired-notice {
+  grid-column: 1 / -1;
+  margin: 0 0 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: rgba(255, 155, 143, 0.12);
+  border: 1px solid rgba(255, 155, 143, 0.3);
+  color: #ff9b8f;
+  font-size: 0.9rem;
+  align-self: start;
+}
+
 @media (max-width: 900px) {
   .landing-page {
     grid-template-columns: 1fr;

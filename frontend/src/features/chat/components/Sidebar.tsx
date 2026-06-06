@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Button } from '@/components/ui/button'
 import type { AgentMode, ConnectionStatus, ParticipantPresence } from '../../../shared/ws/protocol'
+import { formatRemainingTime } from '../../../shared/utils'
 import './Sidebar.css'
 
 interface SidebarProps {
@@ -18,6 +20,12 @@ interface SidebarProps {
 }
 
 export function Sidebar(props: SidebarProps) {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   return (
     <aside className="sidebar">
       <div className="sidebar__block">
@@ -45,7 +53,7 @@ export function Sidebar(props: SidebarProps) {
           <div><dt>API Key</dt><dd>{maskApiKey(props.apiKey)}</dd></div>
           <div><dt>Sala</dt><dd>{props.roomCode}</dd></div>
           <div><dt>Status</dt><dd>{props.connection}</dd></div>
-          <div><dt>TTL</dt><dd>{props.expiresAt ? new Date(props.expiresAt).toLocaleString('pt-BR') : '...'}</dd></div>
+          <div><dt>TTL</dt><dd>{props.expiresAt ? formatRemainingTime(props.expiresAt) : '...'}</dd></div>
         </dl>
         <div className="sidebar__actions">
           <Button onClick={props.onReconnect}>Reconectar</Button>

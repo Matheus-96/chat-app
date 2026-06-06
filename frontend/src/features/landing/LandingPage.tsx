@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { createRoom, fetchRoomByCode, normalizeRoomCode } from '../../shared/api/rooms'
 import { loadStoredProfile, saveProfile } from '../../shared/storage/profile'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,8 @@ import './LandingPage.css'
 export function LandingPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const isExpired = (location.state as { expired?: boolean } | null)?.expired === true
   const profile = loadStoredProfile()
   const [name, setName] = useState(profile.name)
   const [apiKey, setApiKey] = useState(profile.apiKey)
@@ -72,6 +74,9 @@ export function LandingPage() {
 
   return (
     <main className="landing-page">
+      {isExpired && (
+        <p className="landing-page__expired-notice">Sala expirada ou nao encontrada. Crie uma nova sala para continuar.</p>
+      )}
       <section className="landing-page__hero">
         <p className="landing-page__eyebrow">Writing practice in realtime</p>
         <h1>Converse em ingles com feedback do coach no fluxo da sala.</h1>
