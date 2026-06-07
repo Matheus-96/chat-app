@@ -52,7 +52,7 @@ export function Sidebar(props: SidebarProps) {
           <div><dt>Nome</dt><dd>{props.name}</dd></div>
           <div><dt>API Key</dt><dd>{maskApiKey(props.apiKey)}</dd></div>
           <div><dt>Sala</dt><dd>{props.roomCode}</dd></div>
-          <div><dt>Status</dt><dd>{props.connection}</dd></div>
+          <div><dt>Status</dt><dd>{formatConnectionStatus(props.connection)}</dd></div>
           <div><dt>TTL</dt><dd>{props.expiresAt ? formatRemainingTime(props.expiresAt) : '...'}</dd></div>
         </dl>
         <div className="sidebar__actions">
@@ -63,6 +63,13 @@ export function Sidebar(props: SidebarProps) {
       </div>
     </aside>
   )
+}
+
+function formatConnectionStatus(status: ConnectionStatus): string {
+  if (status === 'connecting') return 'Conectando...'
+  if (status === 'connected') return 'Conectado'
+  if (status === 'reconnecting') return 'Reconectando...'
+  return 'Desconectado'
 }
 
 function maskApiKey(apiKey: string) {
