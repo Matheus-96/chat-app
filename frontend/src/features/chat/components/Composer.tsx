@@ -6,6 +6,7 @@ import './Composer.css'
 
 interface ComposerProps {
   agentMode: AgentMode
+  customInstructionsValid: boolean
   disabled: boolean
   hasApiKey: boolean
   onSend: (content: string, analyze?: boolean) => void
@@ -52,7 +53,7 @@ export function Composer(props: ComposerProps) {
     typingTimer.current = window.setTimeout(() => props.onTyping(false), 1200)
   }
 
-  const isDisabled = props.disabled || !props.hasApiKey
+  const isDisabled = props.disabled || !props.hasApiKey || !props.customInstructionsValid
 
   return (
     <footer className="composer">
@@ -68,7 +69,7 @@ export function Composer(props: ComposerProps) {
         value={value}
       />
       <div className="composer__meta">
-        <span>{props.agentMode === 'manual' ? 'Ctrl+Enter envia com analise' : 'Analise automatica ligada'}</span>
+        <span>{props.agentMode === 'manual' ? 'Enter envia · Ctrl+Enter envia com análise' : 'Análise automática ativada'}</span>
         <Button disabled={isDisabled} onClick={() => submit(props.agentMode === 'manual' ? false : undefined)}>
           Enviar
         </Button>

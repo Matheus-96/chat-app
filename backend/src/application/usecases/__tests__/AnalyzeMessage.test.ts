@@ -96,4 +96,30 @@ describe('analyzeMessage', () => {
 
     expect(storage.hasReplyForMessage(room.id, userMessage.id)).toBe(true)
   })
+
+  it('passes customInstructions to aiProvider.analyze when defined', async () => {
+    const storage = makeStorage()
+    const room = storage.createRoom()
+    const userMessage = makeUserMessage(storage, room.id)
+    const analyzeSpy = vi.fn().mockResolvedValue({ correctedText: 'Fixed.', explanation: 'Reason.' })
+
+    const aiProvider: AIProvider = { analyze: analyzeSpy }
+
+    await analyzeMessage({ storage, aiProvider, roomId: room.id, userMessage, customInstructions: 'focus on prepositions' })
+
+    expect(analyzeSpy).toHaveBeenCalledWith(userMessage.content, undefined, 'focus on prepositions')
+  })
+
+  it('passes undefined customInstructions to aiProvider.analyze when not provided', async () => {
+    const storage = makeStorage()
+    const room = storage.createRoom()
+    const userMessage = makeUserMessage(storage, room.id)
+    const analyzeSpy = vi.fn().mockResolvedValue({ correctedText: 'Fixed.', explanation: 'Reason.' })
+
+    const aiProvider: AIProvider = { analyze: analyzeSpy }
+
+    await analyzeMessage({ storage, aiProvider, roomId: room.id, userMessage })
+
+    expect(analyzeSpy).toHaveBeenCalledWith(userMessage.content, undefined, undefined)
+  })
 })

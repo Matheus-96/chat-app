@@ -84,6 +84,7 @@ export function RoomPage() {
         />
         <Composer
           agentMode={state.agentMode}
+          customInstructionsValid={customInstructions.length <= 250}
           disabled={state.connection !== 'connected'}
           hasApiKey={!!profile.apiKey}
           onSend={actions.sendMessage}

@@ -59,9 +59,12 @@ export class OpenRouterProvider implements AIProvider {
             { role: 'system', content: SYSTEM_PROMPT },
             {
               role: 'user',
-              content: customInstructions
-                ? `Custom instructions: ${customInstructions}\n\nReview this message and explain the main correction: ${text}`
-                : `Review this message and explain the main correction: ${text}`,
+              content: (() => {
+                const instructions = customInstructions?.trim()
+                return instructions
+                  ? `Custom instructions: ${instructions}\n\nReview this message and explain the main correction: ${text}`
+                  : `Review this message and explain the main correction: ${text}`
+              })(),
             },
           ],
         }),
