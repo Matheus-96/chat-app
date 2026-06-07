@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { buildRoomLink } from '../../shared/config'
 import { requestNotificationPermission } from '../../shared/notifications'
-import { loadStoredAgentMode, loadStoredProfile } from '../../shared/storage/profile'
+import { loadStoredAgentMode, loadStoredProfile, saveProfile } from '../../shared/storage/profile'
 import { Composer } from './components/Composer'
 import { MessageList } from './components/MessageList'
 import { Sidebar } from './components/Sidebar'
@@ -14,14 +14,21 @@ export function RoomPage() {
   const { roomCode = '' } = useParams()
   const normalizedCode = roomCode.toUpperCase()
   const [profile] = useState(() => loadStoredProfile())
+  const [customInstructions, setCustomInstructions] = useState(profile.customInstructions)
   const [notice, setNotice] = useState('')
   const { state, actions } = useRoomConnection({
     roomCode: normalizedCode,
     name: profile.name,
     apiKey: profile.apiKey,
+    customInstructions,
     participantId: profile.participantId,
     initialAgentMode: loadStoredAgentMode(),
   })
+
+  function handleCustomInstructionsChange(value: string) {
+    setCustomInstructions(value)
+    saveProfile({ name: profile.name, apiKey: profile.apiKey, customInstructions: value })
+  }
 
   useEffect(() => {
     void requestNotificationPermission()
@@ -54,12 +61,14 @@ export function RoomPage() {
         agentMode={state.agentMode}
         apiKey={profile.apiKey}
         connection={state.connection}
+        customInstructions={customInstructions}
         expiresAt={state.expiresAt}
         name={profile.name}
         notice={notice}
         participants={state.participants}
         roomCode={state.roomCode || normalizedCode}
         onCopyLink={() => void handleCopyLink()}
+        onCustomInstructionsChange={handleCustomInstructionsChange}
         onModeChange={actions.setAgentMode}
         onReconnect={actions.reconnect}
       />
@@ -76,6 +85,7 @@ export function RoomPage() {
         <Composer
           agentMode={state.agentMode}
           disabled={state.connection !== 'connected'}
+          hasApiKey={!!profile.apiKey}
           onSend={actions.sendMessage}
           onTyping={actions.sendTyping}
         />

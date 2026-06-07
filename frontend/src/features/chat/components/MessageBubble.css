@@ -79,3 +79,16 @@
 .message-bubble__corrected {
   color: var(--success);
 }
+
+.message-bubble__error {
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.message-bubble__error-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}

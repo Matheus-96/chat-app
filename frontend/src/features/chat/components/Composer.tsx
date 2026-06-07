@@ -7,6 +7,7 @@ import './Composer.css'
 interface ComposerProps {
   agentMode: AgentMode
   disabled: boolean
+  hasApiKey: boolean
   onSend: (content: string, analyze?: boolean) => void
   onTyping: (isTyping: boolean) => void
 }
@@ -51,10 +52,13 @@ export function Composer(props: ComposerProps) {
     typingTimer.current = window.setTimeout(() => props.onTyping(false), 1200)
   }
 
+  const isDisabled = props.disabled || !props.hasApiKey
+
   return (
     <footer className="composer">
+      {!props.hasApiKey && <p className="composer__notice">Configure uma API Key na sidebar para usar o coach.</p>}
       <Textarea
-        disabled={props.disabled}
+        disabled={isDisabled}
         maxLength={800}
         onBlur={() => props.onTyping(false)}
         onChange={(event) => handleChange(event.target.value)}
@@ -65,7 +69,7 @@ export function Composer(props: ComposerProps) {
       />
       <div className="composer__meta">
         <span>{props.agentMode === 'manual' ? 'Ctrl+Enter envia com analise' : 'Analise automatica ligada'}</span>
-        <Button disabled={props.disabled} onClick={() => submit(props.agentMode === 'manual' ? false : undefined)}>
+        <Button disabled={isDisabled} onClick={() => submit(props.agentMode === 'manual' ? false : undefined)}>
           Enviar
         </Button>
       </div>

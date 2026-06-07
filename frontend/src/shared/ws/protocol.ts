@@ -17,6 +17,8 @@ export interface RoomMessage {
   content: string
   explanation?: string
   replyToMessageId?: string
+  error?: boolean
+  errorReason?: string
   createdAt: string
 }
 
@@ -25,14 +27,14 @@ export type ServerEvent =
   | { type: 'participant_update'; participants: ParticipantPresence[] }
   | { type: 'message_created'; message: RoomMessage }
   | { type: 'correction_started'; messageId: string }
-  | { type: 'correction_finished'; messageId: string }
+  | { type: 'correction_finished'; messageId: string; error?: boolean; errorReason?: string }
   | { type: 'typing'; participantId: string; name: string; isTyping: boolean }
   | { type: 'room_expired' }
   | { type: 'error'; message: string }
 
 export type ClientEvent =
   | { type: 'join_room'; roomCode: string; participantId: string; name: string }
-  | { type: 'send_message'; content: string; apiKey?: string; analyze?: boolean }
-  | { type: 'analyze_message'; messageId: string; apiKey?: string }
+  | { type: 'send_message'; content: string; apiKey?: string; analyze?: boolean; customInstructions?: string }
+  | { type: 'analyze_message'; messageId: string; apiKey?: string; customInstructions?: string }
   | { type: 'set_agent_mode'; agentMode: AgentMode }
   | { type: 'typing'; isTyping: boolean }

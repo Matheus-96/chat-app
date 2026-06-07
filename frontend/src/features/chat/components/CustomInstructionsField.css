@@ -1,0 +1,15 @@
+.ci-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ci-field__label {
+  font: 500 0.84rem/1.2 'IBM Plex Mono', monospace;
+  color: var(--muted);
+}
+
+.ci-field__counter {
+  justify-self: end;
+  font-size: 0.78rem;
+  color: var(--muted);
+}

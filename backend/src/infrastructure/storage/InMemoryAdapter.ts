@@ -189,7 +189,7 @@ export class InMemoryAdapter implements StorageAdapter {
   hasReplyForMessage(roomId: string, messageId: string): boolean {
     const room = this.getRoom(roomId)
     if (!room) return false
-    return room.messages.some((m) => m.role === 'assistant' && m.replyToMessageId === messageId)
+    return room.messages.some((m) => m.role === 'assistant' && m.replyToMessageId === messageId && !m.error)
   }
 
   private deleteRoom(roomId: string): void {

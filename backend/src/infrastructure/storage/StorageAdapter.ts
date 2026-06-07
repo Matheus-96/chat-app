@@ -17,6 +17,8 @@ export interface RoomMessage {
   content: string
   explanation?: string
   replyToMessageId?: string
+  error?: boolean
+  errorReason?: string
   createdAt: string
 }
 

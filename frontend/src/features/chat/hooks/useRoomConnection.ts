@@ -9,6 +9,7 @@ interface UseRoomConnectionArgs {
   roomCode: string
   name: string
   apiKey: string
+  customInstructions: string
   participantId: string
   initialAgentMode: AgentMode
 }
@@ -46,11 +47,22 @@ export function useRoomConnection(args: UseRoomConnectionArgs) {
   function sendMessage(content: string, analyze?: boolean) {
     typingRef.current = false
     sendEvent({ type: 'typing', isTyping: false })
-    sendEvent({ type: 'send_message', content, analyze, apiKey: argsRef.current.apiKey.trim() || undefined })
+    sendEvent({
+      type: 'send_message',
+      content,
+      analyze,
+      apiKey: argsRef.current.apiKey.trim() || undefined,
+      customInstructions: argsRef.current.customInstructions.trim() || undefined,
+    })
   }
 
   function analyzeMessage(messageId: string) {
-    sendEvent({ type: 'analyze_message', messageId, apiKey: argsRef.current.apiKey.trim() || undefined })
+    sendEvent({
+      type: 'analyze_message',
+      messageId,
+      apiKey: argsRef.current.apiKey.trim() || undefined,
+      customInstructions: argsRef.current.customInstructions.trim() || undefined,
+    })
   }
 
   function sendTyping(isTyping: boolean) {

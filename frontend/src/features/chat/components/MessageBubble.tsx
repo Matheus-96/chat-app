@@ -19,7 +19,11 @@ export function MessageBubble(props: MessageBubbleProps) {
         <p className="message-bubble__content">{props.message.content}</p>
         {props.canAnalyze ? <Button variant="link" className="message-bubble__action" onClick={() => props.onAnalyze(props.message.id)} type="button">Analisar com agente</Button> : null}
         {props.isPending ? <p className="message-bubble__status">Coach analisando...</p> : null}
-        {props.correction ? <CorrectionBlock correction={props.correction} /> : null}
+        {props.correction && props.correction.error
+          ? <ErrorBlock message={props.message} onAnalyze={props.onAnalyze} />
+          : props.correction
+          ? <CorrectionBlock correction={props.correction} />
+          : null}
       </div>
     </article>
   )
@@ -36,6 +40,15 @@ function CorrectionBlock({ correction }: { correction: RoomMessage }) {
         </details>
       </div>
       <p className="message-bubble__corrected">{correction.content}</p>
+    </div>
+  )
+}
+
+function ErrorBlock({ message, onAnalyze }: { message: RoomMessage; onAnalyze: (id: string) => void }) {
+  return (
+    <div className="message-bubble__error">
+      <p className="message-bubble__error-text">Analise indisponivel.</p>
+      <Button variant="link" className="message-bubble__action" onClick={() => onAnalyze(message.id)} type="button">Analisar</Button>
     </div>
   )
 }

@@ -3,18 +3,21 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Button } from '@/components/ui/button'
 import type { AgentMode, ConnectionStatus, ParticipantPresence } from '../../../shared/ws/protocol'
 import { formatRemainingTime } from '../../../shared/utils'
+import { CustomInstructionsField } from './CustomInstructionsField'
 import './Sidebar.css'
 
 interface SidebarProps {
   agentMode: AgentMode
   apiKey: string
   connection: ConnectionStatus
+  customInstructions: string
   expiresAt: string
   name: string
   notice: string
   participants: ParticipantPresence[]
   roomCode: string
   onCopyLink: () => void
+  onCustomInstructionsChange: (value: string) => void
   onModeChange: (agentMode: AgentMode) => void
   onReconnect: () => void
 }
@@ -40,6 +43,12 @@ export function Sidebar(props: SidebarProps) {
           <ToggleGroupItem value="manual" className={props.agentMode === 'manual' ? 'is-active' : ''}>Manual</ToggleGroupItem>
         </ToggleGroup>
         <p className="sidebar__hint">Manual libera o botao no balao e o atalho Ctrl+Enter para enviar com analise.</p>
+      </div>
+
+      <div className="sidebar__block">
+        <p className="sidebar__eyebrow">Coach</p>
+        {!props.apiKey && <p className="sidebar__hint">Coach desabilitado — informe sua API Key abaixo.</p>}
+        <CustomInstructionsField value={props.customInstructions} onChange={props.onCustomInstructionsChange} />
       </div>
 
       <div className="sidebar__block">
