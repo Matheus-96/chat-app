@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { InMemoryAdapter } from '../../../infrastructure/storage/InMemoryAdapter.js'
 import { joinRoom } from '../JoinRoom.js'
 
-const makeStorage = () =>
-  new InMemoryAdapter({ roomTtlMs: 24 * 60 * 60 * 1000, rateLimitMax: 10, rateLimitWindowMs: 15_000 })
+const makeStorage = () => new InMemoryAdapter({ roomTtlMs: 24 * 60 * 60 * 1000 })
 
 describe('joinRoom', () => {
   it('returns null for a non-existent room code', () => {
@@ -68,7 +67,6 @@ describe('joinRoom', () => {
       authorId: 'participant-1',
       authorName: 'Alice',
       content: 'Hello',
-      visibility: 'public',
     })
 
     const result = joinRoom(storage, 'socket-2', room.roomCode, 'participant-2', 'Bob')

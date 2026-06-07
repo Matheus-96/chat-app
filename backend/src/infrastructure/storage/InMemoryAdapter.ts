@@ -15,18 +15,12 @@ const createRoomCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 6)
 
 interface AdapterConfig {
   roomTtlMs: number
-  rateLimitMax: number
-  rateLimitWindowMs: number
-}
-
-interface InternalConnection extends ConnectionRecord {
-  recentMessages: number[]
 }
 
 export class InMemoryAdapter implements StorageAdapter {
   private readonly rooms = new Map<string, RoomRecord>()
   private readonly roomCodeIndex = new Map<string, string>()
-  private readonly connections = new Map<string, InternalConnection>()
+  private readonly connections = new Map<string, ConnectionRecord>()
 
   constructor(private readonly cfg: AdapterConfig) {}
 
@@ -72,7 +66,7 @@ export class InMemoryAdapter implements StorageAdapter {
       createdAt: room.createdAt,
       expiresAt: room.expiresAt,
       participantCount: room.participants.size,
-      messageCount: room.messages.filter((m) => m.visibility === 'public').length,
+      messageCount: room.messages.length,
     }
   }
 
@@ -113,13 +107,7 @@ export class InMemoryAdapter implements StorageAdapter {
       agentMode: existing?.agentMode ?? 'automatic',
     })
 
-    this.connections.set(socketId, {
-      socketId,
-      roomId: room.id,
-      participantId,
-      joinedAt: Date.now(),
-      recentMessages: [],
-    })
+    this.connections.set(socketId, { socketId, roomId: room.id, participantId, joinedAt: Date.now() })
 
     this.touchRoom(room.id)
 
@@ -165,13 +153,9 @@ export class InMemoryAdapter implements StorageAdapter {
     return room ? Array.from(room.participants.values()) : []
   }
 
-  getVisibleMessages(roomId: string, participantId: string): RoomMessage[] {
+  getVisibleMessages(roomId: string, _participantId: string): RoomMessage[] {
     const room = this.getRoom(roomId)
-    if (!room) return []
-
-    return room.messages.filter(
-      (m) => m.visibility === 'public' || m.visibleToParticipantId === participantId,
-    )
+    return room ? room.messages : []
   }
 
   setParticipantAgentMode(roomId: string, participantId: string, agentMode: AgentMode): ParticipantPresence[] | null {
@@ -190,11 +174,7 @@ export class InMemoryAdapter implements StorageAdapter {
     const room = this.getRoom(input.roomId)
     if (!room) return null
 
-    const message: RoomMessage = {
-      id: nanoid(12),
-      createdAt: new Date().toISOString(),
-      ...input,
-    }
+    const message: RoomMessage = { id: nanoid(12), createdAt: new Date().toISOString(), ...input }
 
     room.messages.push(message)
     this.touchRoom(room.id)
@@ -210,19 +190,6 @@ export class InMemoryAdapter implements StorageAdapter {
     const room = this.getRoom(roomId)
     if (!room) return false
     return room.messages.some((m) => m.role === 'assistant' && m.replyToMessageId === messageId)
-  }
-
-  canSendMessage(socketId: string): boolean {
-    const connection = this.connections.get(socketId)
-    if (!connection) return false
-
-    const threshold = Date.now() - this.cfg.rateLimitWindowMs
-    connection.recentMessages = connection.recentMessages.filter((ts) => ts >= threshold)
-
-    if (connection.recentMessages.length >= this.cfg.rateLimitMax) return false
-
-    connection.recentMessages.push(Date.now())
-    return true
   }
 
   private deleteRoom(roomId: string): void {

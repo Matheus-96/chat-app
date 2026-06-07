@@ -2,6 +2,8 @@ import { z } from 'zod'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { generateWritingFeedback } from '../../ai.js'
 import type { StorageAdapter, RoomMessage, ParticipantPresence } from '../../infrastructure/storage/StorageAdapter.js'
+import { RateLimiter } from '../../infrastructure/RateLimiter.js'
+import { sendMessage } from '../../application/usecases/SendMessage.js'
 
 type ServerEvent =
   | { type: 'room_snapshot'; roomId: string; roomCode: string; expiresAt: string; participantId: string; participants: ParticipantPresence[]; messages: RoomMessage[] }
@@ -25,14 +27,12 @@ const sendMessageSchema = z.object({
   content: z.string().trim().min(1).max(800),
   apiKey: z.string().trim().min(1).optional(),
   analyze: z.boolean().optional(),
-  analysisMode: z.enum(['standard', 'rewrite']).optional(),
 })
 
 const analyzeMessageSchema = z.object({
   type: z.literal('analyze_message'),
   messageId: z.string().min(1),
   apiKey: z.string().trim().min(1).optional(),
-  analysisMode: z.enum(['standard', 'rewrite']).optional(),
 })
 
 const setAgentModeSchema = z.object({
@@ -70,14 +70,13 @@ async function processCoachAnalysis(args: {
   roomId: string
   userMessage: RoomMessage
   apiKey?: string
-  analysisMode?: 'standard' | 'rewrite'
 }) {
-  const { wss, storage, roomId, userMessage, apiKey, analysisMode } = args
+  const { wss, storage, roomId, userMessage, apiKey } = args
 
   broadcastRoom(wss, storage, roomId, { type: 'correction_started', messageId: userMessage.id })
 
   try {
-    const feedback = await generateWritingFeedback({ apiKey, text: userMessage.content, mode: analysisMode })
+    const feedback = await generateWritingFeedback({ apiKey, text: userMessage.content })
 
     const assistantMessage = storage.addMessage({
       roomId,
@@ -87,8 +86,6 @@ async function processCoachAnalysis(args: {
       content: feedback.correctedText,
       explanation: feedback.explanation,
       replyToMessageId: userMessage.id,
-      visibility: 'public',
-      analysisMode: analysisMode ?? 'standard',
     })
 
     broadcastRoom(wss, storage, roomId, { type: 'correction_finished', messageId: userMessage.id })
@@ -102,7 +99,6 @@ async function processCoachAnalysis(args: {
       content: 'Nao consegui revisar essa mensagem desta vez.',
       explanation: 'Confira se a chave do OpenRouter e valida ou tente novamente em alguns segundos.',
       replyToMessageId: userMessage.id,
-      visibility: 'public',
     })
 
     broadcastRoom(wss, storage, roomId, { type: 'correction_finished', messageId: userMessage.id })
@@ -111,7 +107,7 @@ async function processCoachAnalysis(args: {
   }
 }
 
-export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter) {
+export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter, rateLimiter: RateLimiter) {
   return function handleConnection(socket: WebSocket) {
     const wsSocket = socket as WebSocket & { socketId: string }
     wsSocket.socketId = crypto.randomUUID()
@@ -169,19 +165,19 @@ export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter) {
 
       const conn = storage.getConnection(socketId)
       if (!conn) { sendError(socket, 'Voce precisa entrar em uma sala antes de enviar mensagens.'); return }
-      if (!storage.canSendMessage(socketId)) { sendError(socket, 'Voce atingiu o limite temporario de mensagens. Tente novamente em alguns segundos.'); return }
+      if (!rateLimiter.check(socketId)) { sendError(socket, 'Voce atingiu o limite temporario de mensagens. Tente novamente em alguns segundos.'); return }
 
       const author = storage.getParticipants(conn.roomId).find((p) => p.participantId === conn.participantId)
       if (!author) { sendError(socket, 'Participante nao encontrado para esta conexao.'); return }
 
       if (maybeSend.success) {
-        const userMessage = storage.addMessage({ roomId: conn.roomId, role: 'user', authorId: author.participantId, authorName: author.name, content: maybeSend.data.content, visibility: 'public' })
+        const userMessage = sendMessage({ storage, roomId: conn.roomId, authorId: author.participantId, authorName: author.name, content: maybeSend.data.content })
         if (!userMessage) { sendError(socket, 'Sala indisponivel.'); return }
 
         broadcastRoom(wss, storage, conn.roomId, { type: 'message_created', message: userMessage })
 
         const shouldAnalyze = maybeSend.data.analyze ?? author.agentMode === 'automatic'
-        if (shouldAnalyze) await processCoachAnalysis({ wss, storage, roomId: conn.roomId, userMessage, apiKey: maybeSend.data.apiKey, analysisMode: maybeSend.data.analysisMode })
+        if (shouldAnalyze) await processCoachAnalysis({ wss, storage, roomId: conn.roomId, userMessage, apiKey: maybeSend.data.apiKey })
         return
       }
 
@@ -192,7 +188,7 @@ export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter) {
       if (existing.role !== 'user' || existing.authorId !== conn.participantId) { sendError(socket, 'Voce so pode analisar mensagens proprias.'); return }
       if (storage.hasReplyForMessage(conn.roomId, maybeAnalyze.data.messageId)) { sendError(socket, 'Esta mensagem ja foi analisada.'); return }
 
-      await processCoachAnalysis({ wss, storage, roomId: conn.roomId, userMessage: existing, apiKey: maybeAnalyze.data.apiKey, analysisMode: maybeAnalyze.data.analysisMode })
+      await processCoachAnalysis({ wss, storage, roomId: conn.roomId, userMessage: existing, apiKey: maybeAnalyze.data.apiKey })
     })
 
     socket.on('close', () => {

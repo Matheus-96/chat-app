@@ -18,7 +18,6 @@ export interface RoomMessage {
   explanation?: string
   replyToMessageId?: string
   createdAt: string
-  visibility: 'public' | 'private'
 }
 
 export type ServerEvent =

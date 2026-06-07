@@ -1,5 +1,4 @@
 export type MessageRole = 'user' | 'assistant'
-export type MessageVisibility = 'public' | 'private'
 export type AgentMode = 'automatic' | 'manual'
 
 export interface ParticipantPresence {
@@ -19,9 +18,6 @@ export interface RoomMessage {
   explanation?: string
   replyToMessageId?: string
   createdAt: string
-  visibility: MessageVisibility
-  visibleToParticipantId?: string
-  analysisMode?: 'standard' | 'rewrite'
 }
 
 export interface RoomRecord {
@@ -80,5 +76,4 @@ export interface StorageAdapter {
   addMessage(input: Omit<RoomMessage, 'id' | 'createdAt'>): RoomMessage | null
   getRoomMessage(roomId: string, messageId: string): RoomMessage | null
   hasReplyForMessage(roomId: string, messageId: string): boolean
-  canSendMessage(socketId: string): boolean
 }

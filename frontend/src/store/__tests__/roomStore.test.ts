@@ -17,7 +17,6 @@ const message: RoomMessage = {
   authorName: 'Alice',
   content: 'Hello',
   createdAt: '2026-01-01T00:00:00Z',
-  visibility: 'public',
 }
 
 beforeEach(() => {

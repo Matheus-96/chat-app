@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { InMemoryAdapter } from '../../../infrastructure/storage/InMemoryAdapter.js'
 import { createRoom } from '../CreateRoom.js'
 
-const storage = () =>
-  new InMemoryAdapter({ roomTtlMs: 24 * 60 * 60 * 1000, rateLimitMax: 10, rateLimitWindowMs: 15_000 })
+const storage = () => new InMemoryAdapter({ roomTtlMs: 24 * 60 * 60 * 1000 })
 
 describe('createRoom', () => {
   it('returns a room with a 6-char code', () => {
