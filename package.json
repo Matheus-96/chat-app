@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently --names \"backend,frontend\" -c \"blue,green\" \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
-    "test": "jest",
+    "test": "npm test --prefix backend && npm test --prefix frontend",
     "build": "echo build",
     "lint": "echo lint"
   },
