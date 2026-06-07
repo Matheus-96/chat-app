@@ -26,6 +26,7 @@ interface RoomActions {
   setTyping: (participantId: string, name: string, isTyping: boolean) => void
   addPendingCorrection: (messageId: string) => void
   removePendingCorrection: (messageId: string) => void
+  updateReactions: (messageId: string, reactions: Record<string, string[]>) => void
   setConnection: (status: ConnectionStatus) => void
   markExpired: () => void
   setAgentMode: (agentMode: AgentMode) => void
@@ -81,6 +82,10 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
 
   removePendingCorrection: (messageId) => set((s) => ({
     pendingCorrections: s.pendingCorrections.filter((id) => id !== messageId),
+  })),
+
+  updateReactions: (messageId, reactions) => set((s) => ({
+    messages: s.messages.map((m) => m.id === messageId ? { ...m, reactions } : m),
   })),
 
   setConnection: (status) => set({ connection: status }),

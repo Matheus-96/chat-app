@@ -65,6 +65,14 @@ export function useRoomConnection(args: UseRoomConnectionArgs) {
     })
   }
 
+  function addReaction(messageId: string, emoji: string) {
+    sendEvent({ type: 'add_reaction', messageId, emoji })
+  }
+
+  function removeReaction(messageId: string, emoji: string) {
+    sendEvent({ type: 'remove_reaction', messageId, emoji })
+  }
+
   function sendTyping(isTyping: boolean) {
     if (typingRef.current !== isTyping) {
       typingRef.current = isTyping
@@ -74,5 +82,5 @@ export function useRoomConnection(args: UseRoomConnectionArgs) {
 
   function reconnect() { setReconnectKey((k) => k + 1) }
 
-  return { state, actions: { analyzeMessage, reconnect, sendMessage, sendTyping, setAgentMode } }
+  return { state, actions: { addReaction, analyzeMessage, reconnect, removeReaction, sendMessage, sendTyping, setAgentMode } }
 }

@@ -30,6 +30,61 @@ function makeWss(socket: ReturnType<typeof makeSocket>) {
   return { clients: new Set([socket]) } as unknown as WebSocketServer
 }
 
+async function setupRoomWithParticipant() {
+  const storage = new InMemoryAdapter({ roomTtlMs: 24 * 60 * 60 * 1000 })
+  const room = storage.createRoom()
+  const rateLimiter = new RateLimiter(10, 15_000)
+  const aiProvider = makeAiProvider()
+  const socket = makeSocket()
+  const wss = makeWss(socket)
+
+  const handleConnection = createWsHandler(wss, storage, rateLimiter, aiProvider)
+  handleConnection(socket as unknown as WebSocket)
+
+  await socket.dispatch('message', Buffer.from(JSON.stringify({ type: 'join_room', roomCode: room.roomCode, participantId: 'p1', name: 'Alice' })))
+  socket.received.length = 0
+
+  return { storage, socket, wss, room }
+}
+
+describe('WS handler — reactions', () => {
+  it('add_reaction broadcasts reaction_added with updated reactions', async () => {
+    const { storage, socket, room } = await setupRoomWithParticipant()
+    const msg = storage.addMessage({ roomId: room.id, role: 'user', authorId: 'p1', authorName: 'Alice', content: 'hi' })!
+
+    await socket.dispatch('message', Buffer.from(JSON.stringify({ type: 'add_reaction', messageId: msg.id, emoji: '👍' })))
+
+    expect(socket.received).toContainEqual(expect.objectContaining({ type: 'reaction_added', messageId: msg.id, emoji: '👍', participantId: 'p1' }))
+    expect(socket.received[0].reactions).toMatchObject({ '👍': ['p1'] })
+  })
+
+  it('remove_reaction broadcasts reaction_removed', async () => {
+    const { storage, socket, room } = await setupRoomWithParticipant()
+    const msg = storage.addMessage({ roomId: room.id, role: 'user', authorId: 'p1', authorName: 'Alice', content: 'hi' })!
+    storage.addReaction(room.id, msg.id, 'p1', '👍')
+
+    await socket.dispatch('message', Buffer.from(JSON.stringify({ type: 'remove_reaction', messageId: msg.id, emoji: '👍' })))
+
+    expect(socket.received).toContainEqual(expect.objectContaining({ type: 'reaction_removed', messageId: msg.id, emoji: '👍', participantId: 'p1' }))
+  })
+
+  it('returns error for non-existent message', async () => {
+    const { socket } = await setupRoomWithParticipant()
+
+    await socket.dispatch('message', Buffer.from(JSON.stringify({ type: 'add_reaction', messageId: 'ghost', emoji: '👍' })))
+
+    expect(socket.received).toContainEqual(expect.objectContaining({ type: 'error' }))
+  })
+
+  it('rejects invalid emoji', async () => {
+    const { socket } = await setupRoomWithParticipant()
+
+    await socket.dispatch('message', Buffer.from(JSON.stringify({ type: 'add_reaction', messageId: 'any', emoji: '🤔' })))
+
+    expect(socket.received).toContainEqual(expect.objectContaining({ type: 'error' }))
+  })
+})
+
 describe('WS handler — customInstructions validation', () => {
   it('rejects send_message with customInstructions longer than 250 chars', async () => {
     const storage = new InMemoryAdapter({ roomTtlMs: 24 * 60 * 60 * 1000 })

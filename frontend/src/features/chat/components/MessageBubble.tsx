@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { ReactionBar } from '@/components/ui/ReactionBar'
 import type { RoomMessage } from '../../../shared/ws/protocol'
 import './MessageBubble.css'
 
@@ -8,7 +9,10 @@ interface MessageBubbleProps {
   isOwn: boolean
   isPending: boolean
   message: RoomMessage
+  participantId: string
+  onAddReaction: (emoji: string) => void
   onAnalyze: (messageId: string) => void
+  onRemoveReaction: (emoji: string) => void
 }
 
 export function MessageBubble(props: MessageBubbleProps) {
@@ -24,6 +28,12 @@ export function MessageBubble(props: MessageBubbleProps) {
           : props.correction
           ? <CorrectionBlock correction={props.correction} />
           : null}
+        <ReactionBar
+          reactions={props.message.reactions}
+          participantId={props.participantId}
+          onAdd={props.onAddReaction}
+          onRemove={props.onRemoveReaction}
+        />
       </div>
     </article>
   )

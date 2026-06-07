@@ -20,6 +20,7 @@ export interface RoomMessage {
   error?: boolean
   errorReason?: string
   createdAt: string
+  reactions: Record<string, string[]>
 }
 
 export interface RoomRecord {
@@ -75,7 +76,9 @@ export interface StorageAdapter {
   getParticipants(roomId: string): ParticipantPresence[]
   getVisibleMessages(roomId: string, participantId: string): RoomMessage[]
   setParticipantAgentMode(roomId: string, participantId: string, agentMode: AgentMode): ParticipantPresence[] | null
-  addMessage(input: Omit<RoomMessage, 'id' | 'createdAt'>): RoomMessage | null
+  addMessage(input: Omit<RoomMessage, 'id' | 'createdAt' | 'reactions'>): RoomMessage | null
   getRoomMessage(roomId: string, messageId: string): RoomMessage | null
   hasReplyForMessage(roomId: string, messageId: string): boolean
+  addReaction(roomId: string, messageId: string, participantId: string, emoji: string): RoomMessage | null
+  removeReaction(roomId: string, messageId: string, participantId: string, emoji: string): RoomMessage | null
 }

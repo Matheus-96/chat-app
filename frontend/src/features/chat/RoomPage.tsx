@@ -80,7 +80,9 @@ export function RoomPage() {
           participantId={profile.participantId}
           pendingCorrections={state.pendingCorrections}
           typingNames={Object.values(state.typing)}
+          onAddReaction={actions.addReaction}
           onAnalyze={actions.analyzeMessage}
+          onRemoveReaction={actions.removeReaction}
         />
         <Composer
           agentMode={state.agentMode}

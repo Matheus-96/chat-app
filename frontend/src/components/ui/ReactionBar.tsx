@@ -1,52 +1,51 @@
-// ReactionBar component: displays reaction summary and a button to open picker
-import * as React from "react";
-import { Emoji, ReactionSummary } from "@/lib/reactions";
-import { Button } from "./button";
-import { ReactionPicker } from "./ReactionPicker";
-import { useReactions } from "../../hooks/useReactions";
+import * as React from 'react'
+import { Button } from './button'
+import { ReactionButton } from './ReactionButton'
+import { ReactionPicker } from './ReactionPicker'
+
+const EMOJIS = ['👍', '👎', '😂', '❤️'] as const
 
 interface ReactionBarProps {
-  /** id of the message we are reacting to */
-  messageId: string;
+  reactions: Record<string, string[]>
+  participantId: string
+  onAdd: (emoji: string) => void
+  onRemove: (emoji: string) => void
 }
 
-export const ReactionBar: React.FC<ReactionBarProps> = ({ messageId }) => {
-  const { data, isLoading, error, addReaction, removeReaction } = useReactions(messageId);
-  const [open, setOpen] = React.useState(false);
+export const ReactionBar: React.FC<ReactionBarProps> = ({ reactions, participantId, onAdd, onRemove }) => {
+  const [pickerOpen, setPickerOpen] = React.useState(false)
 
-  const summary = data?.summary;
+  const visibleEmojis = EMOJIS.filter((e) => (reactions[e]?.length ?? 0) > 0)
 
-  const handleSelect = async (emoji: Emoji) => {
-    try {
-      await addReaction(emoji);
-    } finally {
-      setOpen(false);
-    }
-  };
+  const handleToggle = (emoji: string) => {
+    const hasReacted = reactions[emoji]?.includes(participantId) ?? false
+    if (hasReacted) { onRemove(emoji) } else { onAdd(emoji) }
+  }
+
+  const handlePickerSelect = (emoji: string) => {
+    handleToggle(emoji)
+    setPickerOpen(false)
+  }
 
   return (
-    <div className="flex items-center space-x-2">
-      {isLoading && <span>Loading…</span>}
-      {error && <span className="text-destructive">Error loading reactions</span>}
-      {summary && (
-        <div className="flex items-center space-x-1">
-          {Object.entries(summary.counts).map(([emoji, count]) => (
-            <Button
-              key={emoji}
-              size="xs"
-              variant="outline"
-              onClick={() => handleSelect(emoji as Emoji)}
-              aria-label={`React with ${emoji}`}
-            >
-              {emoji}{count > 0 && <span>{count}</span>}
-            </Button>
-          ))}
-        </div>
-      )}
-      <Button size="xs" onClick={() => setOpen(true)} aria-label="Add reaction">
+    <div className="relative flex items-center gap-1 mt-1">
+      {visibleEmojis.map((emoji) => (
+        <ReactionButton
+          key={emoji}
+          emoji={emoji}
+          count={reactions[emoji]?.length ?? 0}
+          active={reactions[emoji]?.includes(participantId) ?? false}
+          onClick={() => handleToggle(emoji)}
+        />
+      ))}
+      <Button size="xs" variant="ghost" onClick={() => setPickerOpen((o) => !o)} aria-label="Adicionar reação">
         +
       </Button>
-      <ReactionPicker open={open} onClose={() => setOpen(false)} onSelect={handleSelect} />
+      {pickerOpen && (
+        <div className="absolute bottom-full mb-1 left-0 z-10">
+          <ReactionPicker onSelect={handlePickerSelect} onClose={() => setPickerOpen(false)} />
+        </div>
+      )}
     </div>
-  );
-};
+  )
+}

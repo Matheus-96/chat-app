@@ -81,6 +81,8 @@ export function connect(args: ConnectArgs): WsClient {
       store.addPendingCorrection(event.messageId)
     } else if (event.type === 'correction_finished') {
       store.removePendingCorrection(event.messageId)
+    } else if (event.type === 'reaction_added' || event.type === 'reaction_removed') {
+      store.updateReactions(event.messageId, event.reactions)
     } else if (event.type === 'room_expired') {
       store.markExpired()
     } else if (event.type === 'error') {

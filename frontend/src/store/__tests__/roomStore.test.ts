@@ -17,6 +17,7 @@ const message: RoomMessage = {
   authorName: 'Alice',
   content: 'Hello',
   createdAt: '2026-01-01T00:00:00Z',
+  reactions: {},
 }
 
 beforeEach(() => {
@@ -158,5 +159,46 @@ describe('removePendingCorrection', () => {
     useRoomStore.setState({ pendingCorrections: ['msg2'] })
     useRoomStore.getState().removePendingCorrection('msg1')
     expect(useRoomStore.getState().pendingCorrections).toHaveLength(1)
+  })
+})
+
+describe('updateReactions', () => {
+  it('updates reactions on the correct message', () => {
+    useRoomStore.setState({ messages: [message] })
+
+    useRoomStore.getState().updateReactions('msg1', { '👍': ['p1', 'p2'] })
+
+    const updated = useRoomStore.getState().messages[0]
+    expect(updated.reactions['👍']).toEqual(['p1', 'p2'])
+  })
+
+  it('does not affect other messages', () => {
+    const other: RoomMessage = { ...message, id: 'msg2', reactions: { '❤️': ['p1'] } }
+    useRoomStore.setState({ messages: [message, other] })
+
+    useRoomStore.getState().updateReactions('msg1', { '👍': ['p1'] })
+
+    const otherAfter = useRoomStore.getState().messages.find((m) => m.id === 'msg2')!
+    expect(otherAfter.reactions['❤️']).toEqual(['p1'])
+  })
+
+  it('is a no-op for unknown messageId', () => {
+    useRoomStore.setState({ messages: [message] })
+
+    expect(() => useRoomStore.getState().updateReactions('ghost', { '👍': ['p1'] })).not.toThrow()
+    expect(useRoomStore.getState().messages[0].reactions).toEqual({})
+  })
+
+  it('snapshot with reactions populates messages correctly', () => {
+    useRoomStore.getState().applySnapshot({
+      type: 'room_snapshot',
+      roomId: 'room1', roomCode: 'ABC123', expiresAt: '2026-01-02T00:00:00Z',
+      participantId: 'p1',
+      participants: [participant],
+      messages: [{ ...message, reactions: { '😂': ['p2'] } }],
+    })
+
+    const msg = useRoomStore.getState().messages[0]
+    expect(msg.reactions['😂']).toContain('p2')
   })
 })

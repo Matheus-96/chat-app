@@ -6,6 +6,8 @@ import { sendMessage } from '../../application/usecases/SendMessage.js'
 import { analyzeMessage } from '../../application/usecases/AnalyzeMessage.js'
 import type { AIProvider } from '../../infrastructure/ai/AIProvider.js'
 
+const VALID_EMOJIS = ['👍', '👎', '😂', '❤️'] as const
+
 type ServerEvent =
   | { type: 'room_snapshot'; roomId: string; roomCode: string; expiresAt: string; participantId: string; participants: ParticipantPresence[]; messages: RoomMessage[] }
   | { type: 'participant_update'; participants: ParticipantPresence[] }
@@ -13,6 +15,8 @@ type ServerEvent =
   | { type: 'correction_started'; messageId: string }
   | { type: 'correction_finished'; messageId: string; error?: boolean; errorReason?: string }
   | { type: 'typing'; participantId: string; name: string; isTyping: boolean }
+  | { type: 'reaction_added'; messageId: string; emoji: string; participantId: string; reactions: Record<string, string[]> }
+  | { type: 'reaction_removed'; messageId: string; emoji: string; participantId: string; reactions: Record<string, string[]> }
   | { type: 'room_expired' }
   | { type: 'error'; message: string }
 
@@ -46,6 +50,18 @@ const setAgentModeSchema = z.object({
 const typingSchema = z.object({
   type: z.literal('typing'),
   isTyping: z.boolean(),
+})
+
+const addReactionSchema = z.object({
+  type: z.literal('add_reaction'),
+  messageId: z.string().min(1),
+  emoji: z.enum(VALID_EMOJIS),
+})
+
+const removeReactionSchema = z.object({
+  type: z.literal('remove_reaction'),
+  messageId: z.string().min(1),
+  emoji: z.enum(VALID_EMOJIS),
 })
 
 function send(socket: WebSocket, event: ServerEvent) {
@@ -139,6 +155,32 @@ export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter, r
         if (!participants) { sendError(socket, 'Nao foi possivel atualizar o modo do agente.'); return }
 
         broadcastRoom(wss, storage, conn.roomId, { type: 'participant_update', participants })
+        return
+      }
+
+      const maybeAddReaction = addReactionSchema.safeParse(payload)
+      const maybeRemoveReaction = removeReactionSchema.safeParse(payload)
+
+      if (maybeAddReaction.success || maybeRemoveReaction.success) {
+        const conn = storage.getConnection(socketId)
+        if (!conn) { sendError(socket, 'Voce precisa entrar em uma sala antes de reagir.'); return }
+
+        const isAdd = maybeAddReaction.success
+        const data = isAdd ? maybeAddReaction.data : maybeRemoveReaction.data!
+
+        const updated = isAdd
+          ? storage.addReaction(conn.roomId, data.messageId, conn.participantId, data.emoji)
+          : storage.removeReaction(conn.roomId, data.messageId, conn.participantId, data.emoji)
+
+        if (!updated) { sendError(socket, 'Mensagem nao encontrada.'); return }
+
+        broadcastRoom(wss, storage, conn.roomId, {
+          type: isAdd ? 'reaction_added' : 'reaction_removed',
+          messageId: data.messageId,
+          emoji: data.emoji,
+          participantId: conn.participantId,
+          reactions: updated.reactions,
+        })
         return
       }
 

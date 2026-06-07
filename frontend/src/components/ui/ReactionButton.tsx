@@ -1,1 +1,21 @@
-// ReactionButton component – a simple emoji button that toggles a reaction\nimport * as React from 'react';\nimport { Button } from './button';\nimport { Emoji } from '@/lib/reactions';\n\ninterface ReactionButtonProps {\n  /** Emoji to display */\n  emoji: Emoji;\n  /** Current count for this emoji */\n  count: number;\n  /** Click handler */\n  onClick: () => void;\n  /** Optional aria-label for accessibility */\n  ariaLabel?: string;\n}\n\nexport const ReactionButton: React.FC<ReactionButtonProps> = ({ emoji, count, onClick, ariaLabel }) => (\n  <Button\n    size=\"xs\"\n    variant=\"outline\"\n    onClick={onClick}\n    aria-label={ariaLabel ?? `React with ${emoji}`}\n  >\n    {emoji}{count > 0 && <span>{count}</span>}\n  </Button>\n);\n
+import * as React from 'react'
+import { Button } from './button'
+
+interface ReactionButtonProps {
+  emoji: string
+  count: number
+  active: boolean
+  onClick: () => void
+}
+
+export const ReactionButton: React.FC<ReactionButtonProps> = ({ emoji, count, active, onClick }) => (
+  <Button
+    size="xs"
+    variant={active ? 'default' : 'outline'}
+    onClick={onClick}
+    aria-label={`React with ${emoji}`}
+    aria-pressed={active}
+  >
+    {emoji}{count > 0 && <span className="ml-0.5 tabular-nums">{count}</span>}
+  </Button>
+)

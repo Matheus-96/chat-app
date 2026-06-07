@@ -170,11 +170,11 @@ export class InMemoryAdapter implements StorageAdapter {
     return this.getParticipants(roomId)
   }
 
-  addMessage(input: Omit<RoomMessage, 'id' | 'createdAt'>): RoomMessage | null {
+  addMessage(input: Omit<RoomMessage, 'id' | 'createdAt' | 'reactions'>): RoomMessage | null {
     const room = this.getRoom(input.roomId)
     if (!room) return null
 
-    const message: RoomMessage = { id: nanoid(12), createdAt: new Date().toISOString(), ...input }
+    const message: RoomMessage = { id: nanoid(12), createdAt: new Date().toISOString(), reactions: {}, ...input }
 
     room.messages.push(message)
     this.touchRoom(room.id)
@@ -190,6 +190,38 @@ export class InMemoryAdapter implements StorageAdapter {
     const room = this.getRoom(roomId)
     if (!room) return false
     return room.messages.some((m) => m.role === 'assistant' && m.replyToMessageId === messageId && !m.error)
+  }
+
+  addReaction(roomId: string, messageId: string, participantId: string, emoji: string): RoomMessage | null {
+    const room = this.getRoom(roomId)
+    if (!room) return null
+
+    const message = room.messages.find((m) => m.id === messageId)
+    if (!message) return null
+
+    const list = message.reactions[emoji] ?? []
+    if (!list.includes(participantId)) {
+      message.reactions[emoji] = [...list, participantId]
+    }
+
+    return message
+  }
+
+  removeReaction(roomId: string, messageId: string, participantId: string, emoji: string): RoomMessage | null {
+    const room = this.getRoom(roomId)
+    if (!room) return null
+
+    const message = room.messages.find((m) => m.id === messageId)
+    if (!message) return null
+
+    const filtered = (message.reactions[emoji] ?? []).filter((id) => id !== participantId)
+    if (filtered.length === 0) {
+      delete message.reactions[emoji]
+    } else {
+      message.reactions[emoji] = filtered
+    }
+
+    return message
   }
 
   private deleteRoom(roomId: string): void {

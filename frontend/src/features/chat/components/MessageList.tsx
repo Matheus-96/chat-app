@@ -9,7 +9,9 @@ interface MessageListProps {
   participantId: string
   pendingCorrections: string[]
   typingNames: string[]
+  onAddReaction: (messageId: string, emoji: string) => void
   onAnalyze: (messageId: string) => void
+  onRemoveReaction: (messageId: string, emoji: string) => void
 }
 
 export function MessageList(props: MessageListProps) {
@@ -32,7 +34,10 @@ export function MessageList(props: MessageListProps) {
           isPending={props.pendingCorrections.includes(message.id)}
           key={message.id}
           message={message}
+          participantId={props.participantId}
+          onAddReaction={(emoji) => props.onAddReaction(message.id, emoji)}
           onAnalyze={props.onAnalyze}
+          onRemoveReaction={(emoji) => props.onRemoveReaction(message.id, emoji)}
         />
       ))}
       {props.typingNames.length > 0 ? <p className="message-list__typing">{formatTyping(props.typingNames)}</p> : null}

@@ -20,6 +20,7 @@ export interface RoomMessage {
   error?: boolean
   errorReason?: string
   createdAt: string
+  reactions: Record<string, string[]>
 }
 
 export type ServerEvent =
@@ -29,6 +30,8 @@ export type ServerEvent =
   | { type: 'correction_started'; messageId: string }
   | { type: 'correction_finished'; messageId: string; error?: boolean; errorReason?: string }
   | { type: 'typing'; participantId: string; name: string; isTyping: boolean }
+  | { type: 'reaction_added'; messageId: string; emoji: string; participantId: string; reactions: Record<string, string[]> }
+  | { type: 'reaction_removed'; messageId: string; emoji: string; participantId: string; reactions: Record<string, string[]> }
   | { type: 'room_expired' }
   | { type: 'error'; message: string }
 
@@ -38,3 +41,5 @@ export type ClientEvent =
   | { type: 'analyze_message'; messageId: string; apiKey?: string; customInstructions?: string }
   | { type: 'set_agent_mode'; agentMode: AgentMode }
   | { type: 'typing'; isTyping: boolean }
+  | { type: 'add_reaction'; messageId: string; emoji: string }
+  | { type: 'remove_reaction'; messageId: string; emoji: string }
