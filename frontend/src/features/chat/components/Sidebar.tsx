@@ -1,4 +1,8 @@
+import { useEffect, useState } from 'react'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Button } from '@/components/ui/button'
 import type { AgentMode, ConnectionStatus, ParticipantPresence } from '../../../shared/ws/protocol'
+import { formatRemainingTime } from '../../../shared/utils'
 import './Sidebar.css'
 
 interface SidebarProps {
@@ -16,14 +20,24 @@ interface SidebarProps {
 }
 
 export function Sidebar(props: SidebarProps) {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   return (
     <aside className="sidebar">
       <div className="sidebar__block">
         <p className="sidebar__eyebrow">Modo do agente</p>
-        <div className="sidebar__toggle">
-          <button className={props.agentMode === 'automatic' ? 'is-active' : ''} onClick={() => props.onModeChange('automatic')} type="button">Automatico</button>
-          <button className={props.agentMode === 'manual' ? 'is-active' : ''} onClick={() => props.onModeChange('manual')} type="button">Manual</button>
-        </div>
+        <ToggleGroup
+          value={props.agentMode}
+          onValueChange={(value) => props.onModeChange(value as AgentMode)}
+          className="sidebar__toggle"
+        >
+          <ToggleGroupItem value="automatic" className={props.agentMode === 'automatic' ? 'is-active' : ''}>Automatico</ToggleGroupItem>
+          <ToggleGroupItem value="manual" className={props.agentMode === 'manual' ? 'is-active' : ''}>Manual</ToggleGroupItem>
+        </ToggleGroup>
         <p className="sidebar__hint">Manual libera o botao no balao e o atalho Ctrl+Enter para enviar com analise.</p>
       </div>
 
@@ -39,11 +53,11 @@ export function Sidebar(props: SidebarProps) {
           <div><dt>API Key</dt><dd>{maskApiKey(props.apiKey)}</dd></div>
           <div><dt>Sala</dt><dd>{props.roomCode}</dd></div>
           <div><dt>Status</dt><dd>{props.connection}</dd></div>
-          <div><dt>TTL</dt><dd>{props.expiresAt ? new Date(props.expiresAt).toLocaleString('pt-BR') : '...'}</dd></div>
+          <div><dt>TTL</dt><dd>{props.expiresAt ? formatRemainingTime(props.expiresAt) : '...'}</dd></div>
         </dl>
         <div className="sidebar__actions">
-          <button onClick={props.onReconnect} type="button">Reconectar</button>
-          <button onClick={props.onCopyLink} type="button">Copiar link</button>
+          <Button onClick={props.onReconnect}>Reconectar</Button>
+          <Button onClick={props.onCopyLink}>Copiar link</Button>
         </div>
         {props.notice ? <p className="sidebar__notice">{props.notice}</p> : null}
       </div>
