@@ -26,6 +26,7 @@ const sendMessageSchema = z.object({
   apiKey: z.string().trim().min(1).optional(),
   analyze: z.boolean().optional(),
   analysisMode: z.enum(['standard', 'rewrite']).optional(),
+  customInstructions: z.string().max(250).optional(),
 })
 
 const analyzeMessageSchema = z.object({
@@ -33,6 +34,12 @@ const analyzeMessageSchema = z.object({
   messageId: z.string().min(1),
   apiKey: z.string().trim().min(1).optional(),
   analysisMode: z.enum(['standard', 'rewrite']).optional(),
+  customInstructions: z.string().max(250).optional(),
+})
+
+const updateNameSchema = z.object({
+  type: z.literal('update_name'),
+  name: z.string().trim().min(1).max(32),
 })
 
 const setAgentModeSchema = z.object({
@@ -157,6 +164,18 @@ export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter) {
 
         const participants = storage.setParticipantAgentMode(conn.roomId, conn.participantId, maybeSetAgentMode.data.agentMode)
         if (!participants) { sendError(socket, 'Nao foi possivel atualizar o modo do agente.'); return }
+
+        broadcastRoom(wss, storage, conn.roomId, { type: 'participant_update', participants })
+        return
+      }
+
+      const maybeUpdateName = updateNameSchema.safeParse(payload)
+      if (maybeUpdateName.success) {
+        const conn = storage.getConnection(socketId)
+        if (!conn) { sendError(socket, 'Voce precisa entrar em uma sala antes de atualizar o nome.'); return }
+
+        const participants = storage.updateParticipantName(conn.roomId, conn.participantId, maybeUpdateName.data.name)
+        if (!participants) { sendError(socket, 'Nao foi possivel atualizar o nome.'); return }
 
         broadcastRoom(wss, storage, conn.roomId, { type: 'participant_update', participants })
         return

@@ -174,6 +174,18 @@ export class InMemoryAdapter implements StorageAdapter {
     )
   }
 
+  updateParticipantName(roomId: string, participantId: string, name: string): ParticipantPresence[] | null {
+    const room = this.getRoom(roomId)
+    if (!room) return null
+
+    const participant = room.participants.get(participantId)
+    if (!participant) return null
+
+    room.participants.set(participantId, { ...participant, name })
+    this.touchRoom(roomId)
+    return this.getParticipants(roomId)
+  }
+
   setParticipantAgentMode(roomId: string, participantId: string, agentMode: AgentMode): ParticipantPresence[] | null {
     const room = this.getRoom(roomId)
     if (!room) return null

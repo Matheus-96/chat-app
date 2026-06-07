@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { wsUrl } from '../../../shared/config'
-import { saveStoredAgentMode } from '../../../shared/storage/profile'
 import { connect, type WsClient } from '../../../shared/ws/client'
 import type { AgentMode, ClientEvent } from '../../../shared/ws/protocol'
 import { useRoomStore } from '../../../store/roomStore'
@@ -10,7 +9,7 @@ interface UseRoomConnectionArgs {
   name: string
   apiKey: string
   participantId: string
-  initialAgentMode: AgentMode
+  customInstructions: string
 }
 
 export function useRoomConnection(args: UseRoomConnectionArgs) {
@@ -27,7 +26,7 @@ export function useRoomConnection(args: UseRoomConnectionArgs) {
       roomCode: argsRef.current.roomCode,
       participantId: argsRef.current.participantId,
       name: argsRef.current.name,
-      agentMode: argsRef.current.initialAgentMode,
+      agentMode: useRoomStore.getState().agentMode,
     })
     clientRef.current = client
     return () => client.close()
@@ -38,7 +37,6 @@ export function useRoomConnection(args: UseRoomConnectionArgs) {
   }, [])
 
   function setAgentMode(agentMode: AgentMode) {
-    saveStoredAgentMode(agentMode)
     useRoomStore.getState().setAgentMode(agentMode)
     sendEvent({ type: 'set_agent_mode', agentMode })
   }
@@ -46,11 +44,22 @@ export function useRoomConnection(args: UseRoomConnectionArgs) {
   function sendMessage(content: string, analyze?: boolean) {
     typingRef.current = false
     sendEvent({ type: 'typing', isTyping: false })
-    sendEvent({ type: 'send_message', content, analyze, apiKey: argsRef.current.apiKey.trim() || undefined })
+    sendEvent({
+      type: 'send_message',
+      content,
+      analyze,
+      apiKey: argsRef.current.apiKey.trim() || undefined,
+      customInstructions: argsRef.current.customInstructions.trim() || undefined,
+    })
   }
 
   function analyzeMessage(messageId: string) {
-    sendEvent({ type: 'analyze_message', messageId, apiKey: argsRef.current.apiKey.trim() || undefined })
+    sendEvent({
+      type: 'analyze_message',
+      messageId,
+      apiKey: argsRef.current.apiKey.trim() || undefined,
+      customInstructions: argsRef.current.customInstructions.trim() || undefined,
+    })
   }
 
   function sendTyping(isTyping: boolean) {
@@ -60,7 +69,11 @@ export function useRoomConnection(args: UseRoomConnectionArgs) {
     }
   }
 
+  function sendUpdateName(name: string) {
+    sendEvent({ type: 'update_name', name })
+  }
+
   function reconnect() { setReconnectKey((k) => k + 1) }
 
-  return { state, actions: { analyzeMessage, reconnect, sendMessage, sendTyping, setAgentMode } }
+  return { state, actions: { analyzeMessage, reconnect, sendMessage, sendTyping, setAgentMode, sendUpdateName } }
 }
