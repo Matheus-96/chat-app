@@ -10,6 +10,7 @@ const envSchema = z.object({
   OPENROUTER_HTTP_REFERER: z.string().default('http://localhost:5173'),
   OPENROUTER_APP_NAME: z.string().default('Chat Writing Coach'),
   OPENROUTER_MODEL: z.string().default('openai/gpt-4o-mini'),
+  AI_PROVIDER: z.enum(['openrouter', 'mock']).default('openrouter'),
 })
 
 const result = envSchema.safeParse(process.env)

@@ -39,7 +39,7 @@ export function Sidebar(props: SidebarProps) {
           onValueChange={(value) => props.onModeChange(value as AgentMode)}
           className="sidebar__toggle"
         >
-          <ToggleGroupItem value="automatic" className={props.agentMode === 'automatic' ? 'is-active' : ''}>Automatico</ToggleGroupItem>
+          <ToggleGroupItem value="automatic" className={props.agentMode === 'automatic' ? 'is-active' : ''}>Automático</ToggleGroupItem>
           <ToggleGroupItem value="manual" className={props.agentMode === 'manual' ? 'is-active' : ''}>Manual</ToggleGroupItem>
         </ToggleGroup>
         <p className="sidebar__hint">Manual libera o botao no balao e o atalho Ctrl+Enter para enviar com analise.</p>

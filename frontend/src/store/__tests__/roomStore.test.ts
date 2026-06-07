@@ -107,3 +107,56 @@ describe('applyParticipantUpdate', () => {
     expect(useRoomStore.getState().participants).toHaveLength(2)
   })
 })
+
+describe('setAgentMode', () => {
+  it('sets agentMode to manual', () => {
+    useRoomStore.getState().setAgentMode('manual')
+    expect(useRoomStore.getState().agentMode).toBe('manual')
+  })
+
+  it('sets agentMode to automatic', () => {
+    useRoomStore.getState().setAgentMode('automatic')
+    expect(useRoomStore.getState().agentMode).toBe('automatic')
+  })
+})
+
+describe('applySnapshot — agentMode', () => {
+  it('resolves agentMode as manual when participant has manual mode', () => {
+    useRoomStore.getState().applySnapshot({
+      type: 'room_snapshot',
+      roomId: 'room1', roomCode: 'ABC123', expiresAt: '2026-01-02T00:00:00Z',
+      participantId: 'p1',
+      participants: [{ ...participant, agentMode: 'manual' }],
+      messages: [],
+    })
+    expect(useRoomStore.getState().agentMode).toBe('manual')
+  })
+})
+
+describe('addPendingCorrection', () => {
+  it('adds a messageId to pendingCorrections', () => {
+    useRoomStore.getState().addPendingCorrection('msg1')
+    expect(useRoomStore.getState().pendingCorrections).toContain('msg1')
+  })
+
+  it('does not duplicate an already-pending messageId', () => {
+    useRoomStore.getState().addPendingCorrection('msg1')
+    useRoomStore.getState().addPendingCorrection('msg1')
+    expect(useRoomStore.getState().pendingCorrections).toHaveLength(1)
+  })
+})
+
+describe('removePendingCorrection', () => {
+  it('removes a messageId from pendingCorrections', () => {
+    useRoomStore.setState({ pendingCorrections: ['msg1', 'msg2'] })
+    useRoomStore.getState().removePendingCorrection('msg1')
+    expect(useRoomStore.getState().pendingCorrections).not.toContain('msg1')
+    expect(useRoomStore.getState().pendingCorrections).toContain('msg2')
+  })
+
+  it('is a no-op when messageId is not pending', () => {
+    useRoomStore.setState({ pendingCorrections: ['msg2'] })
+    useRoomStore.getState().removePendingCorrection('msg1')
+    expect(useRoomStore.getState().pendingCorrections).toHaveLength(1)
+  })
+})

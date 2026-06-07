@@ -36,6 +36,46 @@ function renderBubble(correction?: RoomMessage) {
   )
 }
 
+describe('MessageBubble — canAnalyze', () => {
+  it('exibe botão "Analisar com agente" quando canAnalyze=true', () => {
+    render(
+      <MessageBubble
+        canAnalyze
+        isOwn
+        isPending={false}
+        message={baseMessage}
+        onAnalyze={vi.fn()}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Analisar com agente' })).toBeInTheDocument()
+  })
+
+  it('não exibe botão "Analisar com agente" quando canAnalyze=false', () => {
+    renderBubble()
+    expect(screen.queryByRole('button', { name: 'Analisar com agente' })).not.toBeInTheDocument()
+  })
+})
+
+describe('MessageBubble — isPending', () => {
+  it('exibe indicador "Coach analisando..." quando isPending=true', () => {
+    render(
+      <MessageBubble
+        canAnalyze={false}
+        isOwn
+        isPending
+        message={baseMessage}
+        onAnalyze={vi.fn()}
+      />
+    )
+    expect(screen.getByText('Coach analisando...')).toBeInTheDocument()
+  })
+
+  it('não exibe indicador de pendência quando isPending=false e sem correção', () => {
+    renderBubble()
+    expect(screen.queryByText('Coach analisando...')).not.toBeInTheDocument()
+  })
+})
+
 describe('MessageBubble — error state', () => {
   it('renders "Analise indisponivel" when correction has error', () => {
     renderBubble(errorCorrection)

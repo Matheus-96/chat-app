@@ -4,7 +4,7 @@ import type { StorageAdapter, RoomMessage, ParticipantPresence } from '../../inf
 import { RateLimiter } from '../../infrastructure/RateLimiter.js'
 import { sendMessage } from '../../application/usecases/SendMessage.js'
 import { analyzeMessage } from '../../application/usecases/AnalyzeMessage.js'
-import { OpenRouterProvider } from '../../infrastructure/ai/OpenRouterProvider.js'
+import type { AIProvider } from '../../infrastructure/ai/AIProvider.js'
 
 type ServerEvent =
   | { type: 'room_snapshot'; roomId: string; roomCode: string; expiresAt: string; participantId: string; participants: ParticipantPresence[]; messages: RoomMessage[] }
@@ -67,17 +67,16 @@ function broadcastRoom(wss: WebSocketServer, storage: StorageAdapter, roomId: st
   for (const s of socketsInRoom(wss, storage, roomId)) send(s as WebSocket, event)
 }
 
-const aiProvider = new OpenRouterProvider()
-
 async function runCoachAnalysis(args: {
   wss: WebSocketServer
   storage: StorageAdapter
+  aiProvider: AIProvider
   roomId: string
   userMessage: RoomMessage
   apiKey?: string
   customInstructions?: string
 }) {
-  const { wss, storage, roomId, userMessage, apiKey, customInstructions } = args
+  const { wss, storage, aiProvider, roomId, userMessage, apiKey, customInstructions } = args
 
   broadcastRoom(wss, storage, roomId, { type: 'correction_started', messageId: userMessage.id })
 
@@ -92,7 +91,7 @@ async function runCoachAnalysis(args: {
   broadcastRoom(wss, storage, roomId, { type: 'message_created', message: result.message })
 }
 
-export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter, rateLimiter: RateLimiter) {
+export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter, rateLimiter: RateLimiter, aiProvider: AIProvider) {
   return function handleConnection(socket: WebSocket) {
     const wsSocket = socket as WebSocket & { socketId: string }
     wsSocket.socketId = crypto.randomUUID()
@@ -162,7 +161,7 @@ export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter, r
         broadcastRoom(wss, storage, conn.roomId, { type: 'message_created', message: userMessage })
 
         const shouldAnalyze = maybeSend.data.analyze ?? author.agentMode === 'automatic'
-        if (shouldAnalyze) await runCoachAnalysis({ wss, storage, roomId: conn.roomId, userMessage, apiKey: maybeSend.data.apiKey, customInstructions: maybeSend.data.customInstructions })
+        if (shouldAnalyze) await runCoachAnalysis({ wss, storage, aiProvider, roomId: conn.roomId, userMessage, apiKey: maybeSend.data.apiKey, customInstructions: maybeSend.data.customInstructions })
         return
       }
 
@@ -173,7 +172,7 @@ export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter, r
       if (existing.role !== 'user' || existing.authorId !== conn.participantId) { sendError(socket, 'Voce so pode analisar mensagens proprias.'); return }
       if (storage.hasReplyForMessage(conn.roomId, maybeAnalyze.data.messageId)) { sendError(socket, 'Esta mensagem ja foi analisada.'); return }
 
-      await runCoachAnalysis({ wss, storage, roomId: conn.roomId, userMessage: existing, apiKey: maybeAnalyze.data.apiKey, customInstructions: maybeAnalyze.data.customInstructions })
+      await runCoachAnalysis({ wss, storage, aiProvider, roomId: conn.roomId, userMessage: existing, apiKey: maybeAnalyze.data.apiKey, customInstructions: maybeAnalyze.data.customInstructions })
     })
 
     socket.on('close', () => {
