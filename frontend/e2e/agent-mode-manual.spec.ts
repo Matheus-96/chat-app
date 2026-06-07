@@ -7,24 +7,23 @@ test.describe('Modo manual — fluxo completo', () => {
     await page.getByLabel('API Key OpenRouter').fill('sk-test-mock-key')
     await page.getByRole('button', { name: 'Criar nova sala' }).click()
     await page.waitForURL(/\/room\//)
+    // Aguarda a conexão WS: participante aparece na lista
     await page.waitForSelector('.message-list')
+    await page.getByText('Tester E2E').first().waitFor()
+    // Garante modo manual de forma idempotente
+    await page.getByRole('radio', { name: 'Manual' }).check()
   })
 
-  test('em modo manual, enviar mensagem não dispara análise automática', async ({ page }) => {
-    // Garante modo manual
-    await page.getByRole('button', { name: 'Manual' }).click()
-
-    await page.getByRole('textbox').fill('I goes to the store yesterday.')
+  test('enviar mensagem não dispara análise automática', async ({ page }) => {
+    await page.getByPlaceholder('Escreva sua mensagem em ingles...').fill('I goes to the store yesterday.')
     await page.keyboard.press('Enter')
 
     await page.waitForSelector('.message-bubble')
     await expect(page.getByText('Coach analisando...')).not.toBeVisible()
   })
 
-  test('em modo manual, botão "Analisar com agente" aparece após envio', async ({ page }) => {
-    await page.getByRole('button', { name: 'Manual' }).click()
-
-    await page.getByRole('textbox').fill('She does not like coffee.')
+  test('botão "Analisar com agente" aparece após envio', async ({ page }) => {
+    await page.getByPlaceholder('Escreva sua mensagem em ingles...').fill('She does not like coffee.')
     await page.keyboard.press('Enter')
 
     await page.waitForSelector('.message-bubble')
@@ -32,9 +31,7 @@ test.describe('Modo manual — fluxo completo', () => {
   })
 
   test('clicar "Analisar com agente" exibe resposta do coach mock', async ({ page }) => {
-    await page.getByRole('button', { name: 'Manual' }).click()
-
-    await page.getByRole('textbox').fill('He have many friends.')
+    await page.getByPlaceholder('Escreva sua mensagem em ingles...').fill('He have many friends.')
     await page.keyboard.press('Enter')
 
     await page.waitForSelector('.message-bubble')
@@ -44,9 +41,7 @@ test.describe('Modo manual — fluxo completo', () => {
   })
 
   test('Ctrl+Enter em modo manual envia com análise imediata', async ({ page }) => {
-    await page.getByRole('button', { name: 'Manual' }).click()
-
-    await page.getByRole('textbox').fill('We was happy.')
+    await page.getByPlaceholder('Escreva sua mensagem em ingles...').fill('We was happy.')
     await page.keyboard.press('Control+Enter')
 
     await expect(page.getByText('[mock] Your text looks great!')).toBeVisible({ timeout: 10_000 })
