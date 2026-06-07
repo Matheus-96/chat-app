@@ -31,6 +31,7 @@ export function Sidebar(props: SidebarProps) {
       <div className="sidebar__block">
         <p className="sidebar__eyebrow">Modo do agente</p>
         <ToggleGroup
+          type="single"
           value={props.agentMode}
           onValueChange={(value) => props.onModeChange(value as AgentMode)}
           className="sidebar__toggle"
