@@ -2,6 +2,9 @@ import { notifyNewMessage, playNotificationTone } from '../notifications'
 import { useRoomStore } from '../../store/roomStore'
 import type { AgentMode, ClientEvent, ServerEvent } from './protocol'
 
+const MAX_ATTEMPTS = 10
+const MAX_DELAY = 30_000
+
 export interface ConnectArgs {
   wsUrl: string
   roomCode: string
@@ -17,25 +20,46 @@ export interface WsClient {
 
 export function connect(args: ConnectArgs): WsClient {
   let hasSnapshot = false
-  const socket = new WebSocket(args.wsUrl)
+  let stopped = false
+  let attempts = 0
+  let retryTimer: ReturnType<typeof setTimeout> | null = null
+  let socket!: WebSocket
+
   useRoomStore.getState().setConnection('connecting')
+  createSocket()
 
-  socket.onopen = () => {
-    useRoomStore.getState().setConnection('connected')
-    useRoomStore.getState().setError(null)
-    sendEvent({ type: 'join_room', roomCode: args.roomCode, participantId: args.participantId, name: args.name })
-    sendEvent({ type: 'set_agent_mode', agentMode: args.agentMode })
+  function createSocket() {
+    socket = new WebSocket(args.wsUrl)
+
+    socket.onopen = () => {
+      attempts = 0
+      useRoomStore.getState().setConnection('connected')
+      useRoomStore.getState().setError(null)
+      sendEvent({ type: 'join_room', roomCode: args.roomCode, participantId: args.participantId, name: args.name })
+      sendEvent({ type: 'set_agent_mode', agentMode: useRoomStore.getState().agentMode })
+    }
+
+    socket.onmessage = (ev) => {
+      let parsed: ServerEvent
+      try { parsed = JSON.parse(ev.data as string) as ServerEvent }
+      catch { useRoomStore.getState().setError('Nao foi possivel interpretar a resposta do servidor.'); return }
+      dispatch(parsed)
+    }
+
+    socket.onerror = () => useRoomStore.getState().setError('Conexao instavel com a sala.')
+
+    socket.onclose = () => {
+      if (stopped || useRoomStore.getState().expired) return
+      if (attempts < MAX_ATTEMPTS) {
+        useRoomStore.getState().setConnection('reconnecting')
+        retryTimer = setTimeout(createSocket, Math.min(1000 * 2 ** attempts, MAX_DELAY))
+        attempts++
+      } else {
+        useRoomStore.getState().setConnection('disconnected')
+        useRoomStore.getState().setError('Nao foi possivel reconectar. Clique em Reconectar para tentar novamente.')
+      }
+    }
   }
-
-  socket.onmessage = (ev) => {
-    let parsed: ServerEvent
-    try { parsed = JSON.parse(ev.data as string) as ServerEvent }
-    catch { useRoomStore.getState().setError('Nao foi possivel interpretar a resposta do servidor.'); return }
-    dispatch(parsed)
-  }
-
-  socket.onerror = () => useRoomStore.getState().setError('Conexao instavel com a sala.')
-  socket.onclose = () => useRoomStore.getState().setConnection('disconnected')
 
   function dispatch(event: ServerEvent) {
     const store = useRoomStore.getState()
@@ -68,5 +92,12 @@ export function connect(args: ConnectArgs): WsClient {
     if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(ev))
   }
 
-  return { sendEvent, close: () => socket.close() }
+  return {
+    sendEvent,
+    close: () => {
+      stopped = true
+      if (retryTimer !== null) { clearTimeout(retryTimer); retryTimer = null }
+      socket.close()
+    },
+  }
 }
