@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { buildRoomLink } from '../../shared/config'
 import { requestNotificationPermission } from '../../shared/notifications'
-import { loadStoredAgentMode, loadStoredProfile } from '../../shared/storage/profile'
+import { loadStoredProfile, saveProfile } from '../../shared/storage/profile'
 import { Composer } from './components/Composer'
 import { MessageList } from './components/MessageList'
 import { Sidebar } from './components/Sidebar'
@@ -13,14 +13,14 @@ export function RoomPage() {
   const navigate = useNavigate()
   const { roomCode = '' } = useParams()
   const normalizedCode = roomCode.toUpperCase()
-  const [profile] = useState(() => loadStoredProfile())
+  const [profile, setProfile] = useState(() => loadStoredProfile())
   const [notice, setNotice] = useState('')
   const { state, actions } = useRoomConnection({
     roomCode: normalizedCode,
     name: profile.name,
     apiKey: profile.apiKey,
     participantId: profile.participantId,
-    initialAgentMode: loadStoredAgentMode(),
+    customInstructions: profile.customInstructions,
   })
 
   useEffect(() => {
@@ -44,9 +44,16 @@ export function RoomPage() {
     setNotice('Link copiado para compartilhar a sala.')
   }
 
-  if (!profile.name.trim()) {
-    return null
+  function handleProfileSave(updated: { name: string; customInstructions: string }) {
+    const newProfile = { ...profile, ...updated }
+    saveProfile(newProfile)
+    setProfile(newProfile)
+    if (updated.name !== profile.name) {
+      actions.sendUpdateName(updated.name)
+    }
   }
+
+  if (!profile.name.trim()) return null
 
   return (
     <main className="room-page">
@@ -54,6 +61,7 @@ export function RoomPage() {
         agentMode={state.agentMode}
         apiKey={profile.apiKey}
         connection={state.connection}
+        customInstructions={profile.customInstructions}
         expiresAt={state.expiresAt}
         name={profile.name}
         notice={notice}
@@ -61,6 +69,7 @@ export function RoomPage() {
         roomCode={state.roomCode || normalizedCode}
         onCopyLink={() => void handleCopyLink()}
         onModeChange={actions.setAgentMode}
+        onProfileSave={handleProfileSave}
         onReconnect={actions.reconnect}
       />
       <section className="room-page__chat">

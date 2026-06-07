@@ -33,7 +33,8 @@ export type ServerEvent =
 
 export type ClientEvent =
   | { type: 'join_room'; roomCode: string; participantId: string; name: string }
-  | { type: 'send_message'; content: string; apiKey?: string; analyze?: boolean }
-  | { type: 'analyze_message'; messageId: string; apiKey?: string }
+  | { type: 'send_message'; content: string; apiKey?: string; analyze?: boolean; customInstructions?: string }
+  | { type: 'analyze_message'; messageId: string; apiKey?: string; customInstructions?: string }
   | { type: 'set_agent_mode'; agentMode: AgentMode }
+  | { type: 'update_name'; name: string }
   | { type: 'typing'; isTyping: boolean }

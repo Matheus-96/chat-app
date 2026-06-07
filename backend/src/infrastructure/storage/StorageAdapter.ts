@@ -77,6 +77,7 @@ export interface StorageAdapter {
   getParticipants(roomId: string): ParticipantPresence[]
   getVisibleMessages(roomId: string, participantId: string): RoomMessage[]
   setParticipantAgentMode(roomId: string, participantId: string, agentMode: AgentMode): ParticipantPresence[] | null
+  updateParticipantName(roomId: string, participantId: string, name: string): ParticipantPresence[] | null
   addMessage(input: Omit<RoomMessage, 'id' | 'createdAt'>): RoomMessage | null
   getRoomMessage(roomId: string, messageId: string): RoomMessage | null
   hasReplyForMessage(roomId: string, messageId: string): boolean
