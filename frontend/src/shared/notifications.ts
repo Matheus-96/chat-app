@@ -35,3 +35,12 @@ export function playNotificationTone() {
   oscillator.start()
   oscillator.stop(context.currentTime + 0.12)
 }
+
+export function maybeNotifyMessage(
+  message: { authorId: string; role: string; authorName: string; content: string },
+  currentParticipantId: string,
+): void {
+  if (message.authorId === currentParticipantId || message.role === 'assistant') return
+  playNotificationTone()
+  notifyNewMessage(message.authorName, message.content)
+}

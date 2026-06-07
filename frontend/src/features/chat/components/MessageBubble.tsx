@@ -17,7 +17,7 @@ interface MessageBubbleProps {
 
 export function MessageBubble(props: MessageBubbleProps) {
   return (
-    <article className={`message-bubble ${props.isOwn ? 'message-bubble--own' : ''}`}>
+    <article className={`message-bubble group ${props.isOwn ? 'message-bubble--own' : ''}`}>
       <div className="message-bubble__card">
         <p className="message-bubble__author">{props.isOwn ? 'Voce' : props.message.authorName}</p>
         <p className="message-bubble__content">{props.message.content}</p>

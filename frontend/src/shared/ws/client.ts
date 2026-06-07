@@ -1,4 +1,4 @@
-import { notifyNewMessage, playNotificationTone } from '../notifications'
+import { maybeNotifyMessage } from '../notifications'
 import { useRoomStore } from '../../store/roomStore'
 import type { AgentMode, ClientEvent, ServerEvent } from './protocol'
 
@@ -70,11 +70,7 @@ export function connect(args: ConnectArgs): WsClient {
       store.applyParticipantUpdate(event)
     } else if (event.type === 'message_created') {
       store.addMessage(event.message)
-      const { message } = event
-      if (hasSnapshot && message.authorId !== args.participantId && message.role !== 'assistant') {
-        playNotificationTone()
-        notifyNewMessage(message.authorName, message.content)
-      }
+      if (hasSnapshot) maybeNotifyMessage(event.message, args.participantId)
     } else if (event.type === 'typing') {
       store.setTyping(event.participantId, event.name, event.isTyping)
     } else if (event.type === 'correction_started') {

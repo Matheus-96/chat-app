@@ -1,7 +1,7 @@
 import * as React from 'react'
+import { HoverCard } from 'radix-ui'
 import { Button } from './button'
 import { ReactionButton } from './ReactionButton'
-import { ReactionPicker } from './ReactionPicker'
 
 const EMOJIS = ['👍', '👎', '😂', '❤️'] as const
 
@@ -13,8 +13,6 @@ interface ReactionBarProps {
 }
 
 export const ReactionBar: React.FC<ReactionBarProps> = ({ reactions, participantId, onAdd, onRemove }) => {
-  const [pickerOpen, setPickerOpen] = React.useState(false)
-
   const visibleEmojis = EMOJIS.filter((e) => (reactions[e]?.length ?? 0) > 0)
 
   const handleToggle = (emoji: string) => {
@@ -22,13 +20,8 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({ reactions, participant
     if (hasReacted) { onRemove(emoji) } else { onAdd(emoji) }
   }
 
-  const handlePickerSelect = (emoji: string) => {
-    handleToggle(emoji)
-    setPickerOpen(false)
-  }
-
   return (
-    <div className="relative flex items-center gap-1 mt-1">
+    <div className="flex items-center gap-1 mt-1">
       {visibleEmojis.map((emoji) => (
         <ReactionButton
           key={emoji}
@@ -38,14 +31,39 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({ reactions, participant
           onClick={() => handleToggle(emoji)}
         />
       ))}
-      <Button size="xs" variant="ghost" onClick={() => setPickerOpen((o) => !o)} aria-label="Adicionar reação">
-        +
-      </Button>
-      {pickerOpen && (
-        <div className="absolute bottom-full mb-1 left-0 z-10">
-          <ReactionPicker onSelect={handlePickerSelect} onClose={() => setPickerOpen(false)} />
-        </div>
-      )}
+      <HoverCard.Root openDelay={150} closeDelay={100}>
+        <HoverCard.Trigger asChild>
+          <Button
+            size="xs"
+            variant="ghost"
+            aria-label="Adicionar reação"
+            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-150"
+          >
+            😊
+          </Button>
+        </HoverCard.Trigger>
+        <HoverCard.Portal>
+          <HoverCard.Content
+            side="top"
+            align="start"
+            sideOffset={6}
+            className="flex gap-1 rounded-xl border border-white/10 bg-[#141a28] p-1.5 shadow-xl z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          >
+            {EMOJIS.map((emoji) => (
+              <Button
+                key={emoji}
+                size="xs"
+                variant="ghost"
+                onClick={() => handleToggle(emoji)}
+                aria-label={`Reagir com ${emoji}`}
+                className="text-base hover:scale-125 transition-transform duration-100"
+              >
+                {emoji}
+              </Button>
+            ))}
+          </HoverCard.Content>
+        </HoverCard.Portal>
+      </HoverCard.Root>
     </div>
   )
 }

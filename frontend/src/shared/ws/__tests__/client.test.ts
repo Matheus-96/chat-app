@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { connect, type ConnectArgs } from '../client'
 import { useRoomStore, INITIAL_STATE } from '../../../store/roomStore'
+import { maybeNotifyMessage } from '../../notifications'
 
 vi.mock('../../notifications', () => ({
   notifyNewMessage: vi.fn(),
   playNotificationTone: vi.fn(),
+  maybeNotifyMessage: vi.fn(),
 }))
 
 const MAX_ATTEMPTS = 10
@@ -180,5 +182,61 @@ describe('client.close', () => {
 
     expect(MockWebSocket.instances).toHaveLength(1)
     expect(useRoomStore.getState().connection).not.toBe('reconnecting')
+  })
+})
+
+describe('notification dispatch', () => {
+  beforeEach(() => {
+    vi.mocked(maybeNotifyMessage).mockClear()
+  })
+
+  const mockMessage = {
+    id: 'msg1',
+    roomId: 'room1',
+    role: 'user' as const,
+    authorId: 'p2',
+    authorName: 'Bob',
+    content: 'Hello',
+    createdAt: new Date().toISOString(),
+    reactions: {},
+  }
+
+  function sendSnapshot(ws: MockWebSocket) {
+    ws.onmessage?.({
+      data: JSON.stringify({
+        type: 'room_snapshot',
+        roomId: 'room1',
+        roomCode: 'ABC123',
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        participantId: defaultArgs.participantId,
+        participants: [],
+        messages: [],
+      }),
+    })
+  }
+
+  function sendMessageCreated(ws: MockWebSocket) {
+    ws.onmessage?.({
+      data: JSON.stringify({ type: 'message_created', message: mockMessage }),
+    })
+  }
+
+  it('calls maybeNotifyMessage after snapshot is received', () => {
+    const client = connect(defaultArgs)
+    MockWebSocket.instances[0].triggerOpen()
+    sendSnapshot(MockWebSocket.instances[0])
+    sendMessageCreated(MockWebSocket.instances[0])
+
+    expect(vi.mocked(maybeNotifyMessage)).toHaveBeenCalledWith(mockMessage, defaultArgs.participantId)
+    client.close()
+  })
+
+  it('does not call maybeNotifyMessage before snapshot is received', () => {
+    const client = connect(defaultArgs)
+    MockWebSocket.instances[0].triggerOpen()
+    sendMessageCreated(MockWebSocket.instances[0])
+
+    expect(vi.mocked(maybeNotifyMessage)).not.toHaveBeenCalled()
+    client.close()
   })
 })
