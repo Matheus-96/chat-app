@@ -50,12 +50,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 }
 
 function CorrectionBlock({ correction, originalMessage }: { correction: RoomMessage; originalMessage: RoomMessage }) {
-  const [dismissed, setDismissed] = useState(false)
   const [expanded, setExpanded] = useState(true)
-
-  if (dismissed) {
-    return null
-  }
 
   const diffTokens = computeDiff(originalMessage.content, correction.content)
 
@@ -92,7 +87,7 @@ function CorrectionBlock({ correction, originalMessage }: { correction: RoomMess
 
           <button
             className="message-bubble__correction-button"
-            onClick={() => setDismissed(true)}
+            onClick={() => setExpanded(false)}
             type="button"
           >
             Entendi
