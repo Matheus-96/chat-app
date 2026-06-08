@@ -101,9 +101,9 @@ describe('MessageBubble — error state', () => {
 
   it('renders CorrectionBlock when correction has no error', () => {
     renderBubble(successCorrection)
-    const correctedEl = document.querySelector('.message-bubble__corrected')
-    expect(correctedEl).toBeInTheDocument()
-    expect(correctedEl?.textContent).toBe('Hello, world!')
+    const correctionEl = document.querySelector('.message-bubble__correction')
+    expect(correctionEl).toBeInTheDocument()
+    expect(correctionEl?.textContent).toContain('Hello, world!')
   })
 
   it('does not render error block when correction is successful', () => {

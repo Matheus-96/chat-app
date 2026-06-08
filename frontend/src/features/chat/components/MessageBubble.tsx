@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ReactionBar } from '@/components/ui/ReactionBar'
+import { getAvatarColor } from '../../../lib/avatarColor'
+import { computeDiff } from '../../../lib/diff'
 import type { RoomMessage } from '../../../shared/ws/protocol'
 import './MessageBubble.css'
 
@@ -16,17 +19,24 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble(props: MessageBubbleProps) {
+  const avatarColor = getAvatarColor(props.message.authorId)
+  const initials = props.message.authorName.slice(0, 2).toUpperCase()
+
   return (
-    <article className={`message-bubble group ${props.isOwn ? 'message-bubble--own' : ''}`}>
+    <article className={`message-bubble group ${props.isOwn ? 'message-bubble--own' : 'message-bubble--other'}`}>
+      {!props.isOwn && (
+        <div className="message-bubble__avatar" style={{ backgroundColor: avatarColor }}>
+          {initials}
+        </div>
+      )}
       <div className="message-bubble__card">
-        <p className="message-bubble__author">{props.isOwn ? 'Voce' : props.message.authorName}</p>
         <p className="message-bubble__content">{props.message.content}</p>
         {props.canAnalyze ? <Button variant="link" className="message-bubble__action" onClick={() => props.onAnalyze(props.message.id)} type="button">Analisar com agente</Button> : null}
         {props.isPending ? <p className="message-bubble__status">Coach analisando...</p> : null}
         {props.correction && props.correction.error
           ? <ErrorBlock message={props.message} onAnalyze={props.onAnalyze} />
           : props.correction
-          ? <CorrectionBlock correction={props.correction} />
+          ? <CorrectionBlock correction={props.correction} originalMessage={props.message} />
           : null}
         <ReactionBar
           reactions={props.message.reactions}
@@ -39,17 +49,55 @@ export function MessageBubble(props: MessageBubbleProps) {
   )
 }
 
-function CorrectionBlock({ correction }: { correction: RoomMessage }) {
+function CorrectionBlock({ correction, originalMessage }: { correction: RoomMessage; originalMessage: RoomMessage }) {
+  const [dismissed, setDismissed] = useState(false)
+
+  if (dismissed) {
+    return null
+  }
+
+  const diffTokens = computeDiff(originalMessage.content, correction.content)
+
   return (
     <div className="message-bubble__correction">
-      <div className="message-bubble__divider">
-        <span />
-        <details className="message-bubble__details">
-          <summary>i</summary>
-          <p>{correction.explanation}</p>
-        </details>
+      <div className="message-bubble__correction-header">
+        <span className="message-bubble__correction-badge">CORREÇÃO</span>
       </div>
-      <p className="message-bubble__corrected">{correction.content}</p>
+
+      <div className="message-bubble__correction-diff">
+        {diffTokens.map((token, idx) => (
+          <span
+            key={idx}
+            className={token.changed ? 'message-bubble__correction-changed' : ''}
+          >
+            {token.text}
+          </span>
+        ))}
+      </div>
+
+      <div className="message-bubble__correction-sections">
+        <div className="message-bubble__correction-section">
+          <p className="message-bubble__correction-label">ANTES</p>
+          <pre className="message-bubble__correction-text">{originalMessage.content}</pre>
+        </div>
+
+        <div className="message-bubble__correction-section">
+          <p className="message-bubble__correction-label">DEPOIS</p>
+          <pre className="message-bubble__correction-text">{correction.content}</pre>
+        </div>
+      </div>
+
+      {correction.explanation && (
+        <p className="message-bubble__correction-explanation">{correction.explanation}</p>
+      )}
+
+      <button
+        className="message-bubble__correction-button"
+        onClick={() => setDismissed(true)}
+        type="button"
+      >
+        Entendi
+      </button>
     </div>
   )
 }
