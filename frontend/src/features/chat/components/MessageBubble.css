@@ -190,6 +190,13 @@
   color: var(--muted);
 }
 
+.message-bubble__correction-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.message-bubble__correction-toggle,
 .message-bubble__correction-button {
   padding: 0.65rem 1rem;
   border: 1px solid rgba(74, 205, 196, 0.3);
@@ -200,14 +207,15 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s;
-  align-self: start;
 }
 
+.message-bubble__correction-toggle:hover,
 .message-bubble__correction-button:hover {
   background: rgba(74, 205, 196, 0.1);
   border-color: #4ECDC4;
 }
 
+.message-bubble__correction-toggle:active,
 .message-bubble__correction-button:active {
   opacity: 0.8;
 }

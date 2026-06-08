@@ -51,6 +51,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 
 function CorrectionBlock({ correction, originalMessage }: { correction: RoomMessage; originalMessage: RoomMessage }) {
   const [dismissed, setDismissed] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
 
   if (dismissed) {
     return null
@@ -75,29 +76,40 @@ function CorrectionBlock({ correction, originalMessage }: { correction: RoomMess
         ))}
       </div>
 
-      <div className="message-bubble__correction-sections">
-        <div className="message-bubble__correction-section">
-          <p className="message-bubble__correction-label">ANTES</p>
-          <pre className="message-bubble__correction-text">{originalMessage.content}</pre>
-        </div>
-
-        <div className="message-bubble__correction-section">
-          <p className="message-bubble__correction-label">DEPOIS</p>
-          <pre className="message-bubble__correction-text">{correction.content}</pre>
-        </div>
-      </div>
-
       {correction.explanation && (
         <p className="message-bubble__correction-explanation">{correction.explanation}</p>
       )}
 
-      <button
-        className="message-bubble__correction-button"
-        onClick={() => setDismissed(true)}
-        type="button"
-      >
-        Entendi
-      </button>
+      <div className="message-bubble__correction-actions">
+        <button
+          className="message-bubble__correction-toggle"
+          onClick={() => setShowDetails(!showDetails)}
+          type="button"
+        >
+          {showDetails ? 'Ocultar detalhes' : 'Ver detalhes'}
+        </button>
+        <button
+          className="message-bubble__correction-button"
+          onClick={() => setDismissed(true)}
+          type="button"
+        >
+          Entendi
+        </button>
+      </div>
+
+      {showDetails && (
+        <div className="message-bubble__correction-sections">
+          <div className="message-bubble__correction-section">
+            <p className="message-bubble__correction-label">ANTES</p>
+            <pre className="message-bubble__correction-text">{originalMessage.content}</pre>
+          </div>
+
+          <div className="message-bubble__correction-section">
+            <p className="message-bubble__correction-label">DEPOIS</p>
+            <pre className="message-bubble__correction-text">{correction.content}</pre>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
