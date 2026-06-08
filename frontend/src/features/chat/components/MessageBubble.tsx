@@ -51,7 +51,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 
 function CorrectionBlock({ correction, originalMessage }: { correction: RoomMessage; originalMessage: RoomMessage }) {
   const [dismissed, setDismissed] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
+  const [expanded, setExpanded] = useState(true)
 
   if (dismissed) {
     return null
@@ -63,52 +63,41 @@ function CorrectionBlock({ correction, originalMessage }: { correction: RoomMess
     <div className="message-bubble__correction">
       <div className="message-bubble__correction-header">
         <span className="message-bubble__correction-badge">CORREÇÃO</span>
-      </div>
-
-      <div className="message-bubble__correction-diff">
-        {diffTokens.map((token, idx) => (
-          <span
-            key={idx}
-            className={token.changed ? 'message-bubble__correction-changed' : ''}
-          >
-            {token.text}
-          </span>
-        ))}
-      </div>
-
-      {correction.explanation && (
-        <p className="message-bubble__correction-explanation">{correction.explanation}</p>
-      )}
-
-      <div className="message-bubble__correction-actions">
         <button
           className="message-bubble__correction-toggle"
-          onClick={() => setShowDetails(!showDetails)}
+          onClick={() => setExpanded(!expanded)}
           type="button"
+          aria-label={expanded ? 'Esconder análise' : 'Exibir análise'}
         >
-          {showDetails ? 'Ocultar detalhes' : 'Ver detalhes'}
-        </button>
-        <button
-          className="message-bubble__correction-button"
-          onClick={() => setDismissed(true)}
-          type="button"
-        >
-          Entendi
+          {expanded ? '−' : '+'}
         </button>
       </div>
 
-      {showDetails && (
-        <div className="message-bubble__correction-sections">
-          <div className="message-bubble__correction-section">
-            <p className="message-bubble__correction-label">ANTES</p>
-            <pre className="message-bubble__correction-text">{originalMessage.content}</pre>
+      {expanded && (
+        <>
+          <div className="message-bubble__correction-diff">
+            {diffTokens.map((token, idx) => (
+              <span
+                key={idx}
+                className={token.changed ? 'message-bubble__correction-changed' : ''}
+              >
+                {token.text}
+              </span>
+            ))}
           </div>
 
-          <div className="message-bubble__correction-section">
-            <p className="message-bubble__correction-label">DEPOIS</p>
-            <pre className="message-bubble__correction-text">{correction.content}</pre>
-          </div>
-        </div>
+          {correction.explanation && (
+            <p className="message-bubble__correction-explanation">{correction.explanation}</p>
+          )}
+
+          <button
+            className="message-bubble__correction-button"
+            onClick={() => setDismissed(true)}
+            type="button"
+          >
+            Entendi
+          </button>
+        </>
       )}
     </div>
   )
