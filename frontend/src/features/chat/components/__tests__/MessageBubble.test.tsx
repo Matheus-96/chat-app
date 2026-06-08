@@ -171,3 +171,177 @@ describe('MessageBubble — ReactionBar', () => {
     expect(onRemoveReaction).toHaveBeenCalledWith('❤️')
   })
 })
+
+describe('MessageBubble — Chunking', () => {
+  it('renders ChunkingBlock when message.chunking is present', () => {
+    const msgWithChunking: RoomMessage = {
+      ...baseMessage,
+      chunking: {
+        chunks: [
+          { text: 'The horse', analysis: 'O cavalo' },
+          { text: 'is riding', analysis: 'está montando' },
+        ],
+      },
+    }
+    render(
+      <MessageBubble
+        canAnalyze={false}
+        isOwn
+        isPending={false}
+        message={msgWithChunking}
+        {...reactionProps}
+      />
+    )
+
+    expect(screen.getByText('CHUNKING')).toBeInTheDocument()
+    expect(screen.getByText('The horse')).toBeInTheDocument()
+    expect(screen.getByText('O cavalo')).toBeInTheDocument()
+  })
+
+  it('renders chunking table with correct headers', () => {
+    const msgWithChunking: RoomMessage = {
+      ...baseMessage,
+      chunking: {
+        chunks: [{ text: 'chunk text', analysis: 'translated text' }],
+      },
+    }
+    render(
+      <MessageBubble
+        canAnalyze={false}
+        isOwn
+        isPending={false}
+        message={msgWithChunking}
+        {...reactionProps}
+      />
+    )
+
+    const table = document.querySelector('.message-bubble__chunking-table')
+    expect(table).toBeInTheDocument()
+    expect(screen.getByText('Chunk')).toBeInTheDocument()
+    expect(screen.getByText('Tradução')).toBeInTheDocument()
+  })
+
+  it('toggles chunking block expand/collapse on button click', () => {
+    const msgWithChunking: RoomMessage = {
+      ...baseMessage,
+      chunking: {
+        chunks: [{ text: 'text', analysis: 'análise' }],
+      },
+    }
+    render(
+      <MessageBubble
+        canAnalyze={false}
+        isOwn
+        isPending={false}
+        message={msgWithChunking}
+        {...reactionProps}
+      />
+    )
+
+    const toggleButton = document.querySelector('.message-bubble__chunking-toggle')
+    expect(toggleButton?.textContent).toBe('−')
+
+    fireEvent.click(toggleButton as HTMLElement)
+    expect(toggleButton?.textContent).toBe('+')
+
+    fireEvent.click(toggleButton as HTMLElement)
+    expect(toggleButton?.textContent).toBe('−')
+  })
+
+  it('renders error block when chunking has error: true', () => {
+    const msgWithChunkingError: RoomMessage = {
+      ...baseMessage,
+      chunking: {
+        chunks: [],
+        error: true,
+        errorReason: 'timeout',
+      },
+    }
+    render(
+      <MessageBubble
+        canAnalyze={false}
+        isOwn
+        isPending={false}
+        message={msgWithChunkingError}
+        {...reactionProps}
+      />
+    )
+
+    expect(screen.getByText('Análise indisponível.')).toBeInTheDocument()
+  })
+
+  it('displays retry button in chunking error block', () => {
+    const msgWithChunkingError: RoomMessage = {
+      ...baseMessage,
+      chunking: {
+        chunks: [],
+        error: true,
+        errorReason: 'invalid_key',
+      },
+    }
+    const onAnalyze = vi.fn()
+    render(
+      <MessageBubble
+        canAnalyze={false}
+        isOwn
+        isPending={false}
+        message={msgWithChunkingError}
+        participantId="p1"
+        onAddReaction={vi.fn()}
+        onAnalyze={onAnalyze}
+        onRemoveReaction={vi.fn()}
+      />
+    )
+
+    const retryButton = screen.getByRole('button', { name: 'Analisar' })
+    expect(retryButton).toBeInTheDocument()
+
+    fireEvent.click(retryButton)
+    expect(onAnalyze).toHaveBeenCalledWith(baseMessage.id, 'chunking')
+  })
+
+  it('displays both Chunking and Correction blocks when both exist', () => {
+    const msgWithBoth: RoomMessage = {
+      ...baseMessage,
+      chunking: {
+        chunks: [{ text: 'text', analysis: 'análise' }],
+      },
+    }
+    render(
+      <MessageBubble
+        canAnalyze={false}
+        isOwn
+        isPending={false}
+        message={msgWithBoth}
+        correction={successCorrection}
+        {...reactionProps}
+      />
+    )
+
+    expect(screen.getByText('CORREÇÃO')).toBeInTheDocument()
+    expect(screen.getByText('CHUNKING')).toBeInTheDocument()
+    expect(document.querySelector('.message-bubble__correction')).toBeInTheDocument()
+    expect(document.querySelector('.message-bubble__chunking')).toBeInTheDocument()
+  })
+
+  it('calls onAnalyze with mode=chunking when Chunking button is clicked', () => {
+    const onAnalyze = vi.fn()
+    render(
+      <MessageBubble
+        canAnalyze
+        isOwn
+        isPending={false}
+        message={baseMessage}
+        participantId="p1"
+        onAddReaction={vi.fn()}
+        onAnalyze={onAnalyze}
+        onRemoveReaction={vi.fn()}
+      />
+    )
+
+    const chunkingButton = screen.getByRole('button', { name: 'Chunking' })
+    fireEvent.click(chunkingButton)
+
+    expect(onAnalyze).toHaveBeenCalledWith(baseMessage.id, 'chunking')
+  })
+})

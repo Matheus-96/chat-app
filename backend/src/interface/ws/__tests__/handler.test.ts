@@ -4,6 +4,7 @@ import { createWsHandler } from '../handler.js'
 import { InMemoryAdapter } from '../../../infrastructure/storage/InMemoryAdapter.js'
 import { RateLimiter } from '../../../infrastructure/RateLimiter.js'
 import type { AIProvider } from '../../../infrastructure/ai/AIProvider.js'
+import { AIProviderError } from '../../../infrastructure/ai/AIProvider.js'
 
 const makeAiProvider = (): AIProvider => ({ analyze: vi.fn(), chunk: vi.fn() })
 
@@ -122,5 +123,54 @@ describe('WS handler — customInstructions validation', () => {
 
     expect(socket.received).toContainEqual(expect.objectContaining({ type: 'error' }))
     expect(aiProvider.analyze).not.toHaveBeenCalled()
+  })
+})
+
+describe('WS handler — analyze_message chunking mode', () => {
+  it('AnalyzeMessage usecase with mode=chunking returns message with chunking field', async () => {
+    const storage = new InMemoryAdapter({ roomTtlMs: 24 * 60 * 60 * 1000 })
+    const room = storage.createRoom()
+    const msg = storage.addMessage({ roomId: room.id, role: 'user', authorId: 'p1', authorName: 'Alice', content: 'I goed' })!
+    const aiProvider: AIProvider = {
+      analyze: vi.fn(),
+      chunk: vi.fn().mockResolvedValue({
+        chunks: [{ text: 'I goed', analysis: 'Eu fui' }],
+      }),
+    }
+
+    const result = await (await import('../../../application/usecases/AnalyzeMessage.js')).analyzeMessage({
+      storage,
+      aiProvider,
+      roomId: room.id,
+      userMessage: msg,
+      mode: 'chunking',
+      apiKey: 'key',
+    })
+
+    expect(result.message.chunking).toBeDefined()
+    expect(result.message.chunking?.chunks[0]).toEqual({ text: 'I goed', analysis: 'Eu fui' })
+    expect(aiProvider.chunk).toHaveBeenCalledWith('I goed', 'key')
+  })
+
+  it('AnalyzeMessage usecase with mode=chunking error returns message with error flag', async () => {
+    const storage = new InMemoryAdapter({ roomTtlMs: 24 * 60 * 60 * 1000 })
+    const room = storage.createRoom()
+    const msg = storage.addMessage({ roomId: room.id, role: 'user', authorId: 'p1', authorName: 'Alice', content: 'text' })!
+    const aiProvider: AIProvider = {
+      analyze: vi.fn(),
+      chunk: vi.fn().mockRejectedValue(new AIProviderError('timeout', 'Request timed out')),
+    }
+
+    const result = await (await import('../../../application/usecases/AnalyzeMessage.js')).analyzeMessage({
+      storage,
+      aiProvider,
+      roomId: room.id,
+      userMessage: msg,
+      mode: 'chunking',
+    })
+
+    expect(result.error).toBe(true)
+    expect(result.message.chunking?.error).toBe(true)
+    expect(result.message.chunking?.errorReason).toBe('timeout')
   })
 })

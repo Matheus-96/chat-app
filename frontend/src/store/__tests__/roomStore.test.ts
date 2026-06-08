@@ -202,3 +202,102 @@ describe('updateReactions', () => {
     expect(msg.reactions['😂']).toContain('p2')
   })
 })
+
+describe('updateMessageChunking', () => {
+  it('updates chunking on the correct message', () => {
+    useRoomStore.setState({ messages: [message] })
+
+    useRoomStore.getState().updateMessageChunking({
+      type: 'message_update',
+      messageId: 'msg1',
+      chunking: {
+        chunks: [
+          { text: 'The horse', analysis: 'O cavalo' },
+          { text: 'is riding', analysis: 'está montando' },
+        ],
+      },
+    })
+
+    const updated = useRoomStore.getState().messages[0]
+    expect(updated.chunking).toBeDefined()
+    expect(updated.chunking?.chunks).toHaveLength(2)
+    expect(updated.chunking?.chunks[0]).toEqual({ text: 'The horse', analysis: 'O cavalo' })
+  })
+
+  it('removes messageId from pendingCorrections when chunking arrives', () => {
+    useRoomStore.setState({ messages: [message], pendingCorrections: ['msg1'] })
+
+    useRoomStore.getState().updateMessageChunking({
+      type: 'message_update',
+      messageId: 'msg1',
+      chunking: {
+        chunks: [{ text: 'text', analysis: 'análise' }],
+      },
+    })
+
+    expect(useRoomStore.getState().pendingCorrections).not.toContain('msg1')
+  })
+
+  it('handles chunking with error flag', () => {
+    useRoomStore.setState({ messages: [message] })
+
+    useRoomStore.getState().updateMessageChunking({
+      type: 'message_update',
+      messageId: 'msg1',
+      chunking: {
+        chunks: [],
+        error: true,
+        errorReason: 'timeout',
+      },
+    })
+
+    const updated = useRoomStore.getState().messages[0]
+    expect(updated.chunking?.error).toBe(true)
+    expect(updated.chunking?.errorReason).toBe('timeout')
+  })
+
+  it('does not affect other messages', () => {
+    const other: RoomMessage = { ...message, id: 'msg2' }
+    useRoomStore.setState({ messages: [message, other] })
+
+    useRoomStore.getState().updateMessageChunking({
+      type: 'message_update',
+      messageId: 'msg1',
+      chunking: { chunks: [{ text: 'chunk', analysis: 'análise' }] },
+    })
+
+    const otherAfter = useRoomStore.getState().messages.find((m) => m.id === 'msg2')!
+    expect(otherAfter.chunking).toBeUndefined()
+  })
+
+  it('is a no-op for unknown messageId', () => {
+    useRoomStore.setState({ messages: [message] })
+
+    expect(() => {
+      useRoomStore.getState().updateMessageChunking({
+        type: 'message_update',
+        messageId: 'ghost',
+        chunking: { chunks: [{ text: 'chunk', analysis: 'análise' }] },
+      })
+    }).not.toThrow()
+    expect(useRoomStore.getState().messages[0].chunking).toBeUndefined()
+  })
+
+  it('replaces previous chunking when new chunking arrives', () => {
+    const msgWithChunking: RoomMessage = {
+      ...message,
+      chunking: { chunks: [{ text: 'old', analysis: 'velho' }] },
+    }
+    useRoomStore.setState({ messages: [msgWithChunking] })
+
+    useRoomStore.getState().updateMessageChunking({
+      type: 'message_update',
+      messageId: 'msg1',
+      chunking: { chunks: [{ text: 'new', analysis: 'novo' }] },
+    })
+
+    const updated = useRoomStore.getState().messages[0]
+    expect(updated.chunking?.chunks).toHaveLength(1)
+    expect(updated.chunking?.chunks[0].text).toBe('new')
+  })
+})

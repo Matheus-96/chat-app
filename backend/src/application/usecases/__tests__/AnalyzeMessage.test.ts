@@ -127,4 +127,131 @@ describe('analyzeMessage', () => {
 
     expect(analyzeSpy).toHaveBeenCalledWith(userMessage.content, undefined, undefined)
   })
+
+  describe('chunking mode', () => {
+    it('happy path: mode=chunking returns message with chunking field', async () => {
+      const storage = makeStorage()
+      const room = storage.createRoom()
+      const userMessage = makeUserMessage(storage, room.id)
+
+      const aiProvider: AIProvider = {
+        analyze: vi.fn(),
+        chunk: vi.fn().mockResolvedValue({
+          chunks: [
+            { text: 'I goed', analysis: 'Eu fui' },
+            { text: 'to the store', analysis: 'para a loja' },
+          ],
+        }),
+      }
+
+      const result = await analyzeMessage({
+        storage,
+        aiProvider,
+        roomId: room.id,
+        userMessage,
+        mode: 'chunking',
+        apiKey: 'key-123',
+      })
+
+      expect(result.error).toBeUndefined()
+      expect(result.message.chunking).toBeDefined()
+      expect(result.message.chunking?.chunks).toHaveLength(2)
+      expect(result.message.chunking?.chunks[0]).toEqual({ text: 'I goed', analysis: 'Eu fui' })
+      expect(result.message.chunking?.error).toBeUndefined()
+    })
+
+    it('mode=chunking timeout error: returns message with chunking.error=true', async () => {
+      const storage = makeStorage()
+      const room = storage.createRoom()
+      const userMessage = makeUserMessage(storage, room.id)
+
+      const aiProvider: AIProvider = {
+        analyze: vi.fn(),
+        chunk: vi.fn().mockRejectedValue(new AIProviderError('timeout', 'Request timed out')),
+      }
+
+      const result = await analyzeMessage({
+        storage,
+        aiProvider,
+        roomId: room.id,
+        userMessage,
+        mode: 'chunking',
+      })
+
+      expect(result.error).toBe(true)
+      expect(result.errorReason).toBe('timeout')
+      expect(result.message.chunking).toBeDefined()
+      expect(result.message.chunking?.error).toBe(true)
+      expect(result.message.chunking?.errorReason).toBe('timeout')
+      expect(result.message.chunking?.chunks).toEqual([])
+    })
+
+    it('mode=chunking invalid_key error: returns message with chunking.error=true', async () => {
+      const storage = makeStorage()
+      const room = storage.createRoom()
+      const userMessage = makeUserMessage(storage, room.id)
+
+      const aiProvider: AIProvider = {
+        analyze: vi.fn(),
+        chunk: vi.fn().mockRejectedValue(new AIProviderError('invalid_key', 'Auth failed')),
+      }
+
+      const result = await analyzeMessage({
+        storage,
+        aiProvider,
+        roomId: room.id,
+        userMessage,
+        mode: 'chunking',
+      })
+
+      expect(result.error).toBe(true)
+      expect(result.errorReason).toBe('invalid_key')
+      expect(result.message.chunking?.error).toBe(true)
+      expect(result.message.chunking?.errorReason).toBe('invalid_key')
+    })
+
+    it('mode=chunking does not create new assistant message in storage', async () => {
+      const storage = makeStorage()
+      const room = storage.createRoom()
+      const userMessage = makeUserMessage(storage, room.id)
+
+      const aiProvider: AIProvider = {
+        analyze: vi.fn(),
+        chunk: vi.fn().mockResolvedValue({ chunks: [{ text: 'text', analysis: 'análise' }] }),
+      }
+
+      const initialMessageCount = storage.getRoom(room.id)!.messages.length
+
+      await analyzeMessage({
+        storage,
+        aiProvider,
+        roomId: room.id,
+        userMessage,
+        mode: 'chunking',
+      })
+
+      const finalMessageCount = storage.getRoom(room.id)!.messages.length
+      expect(finalMessageCount).toBe(initialMessageCount)
+    })
+
+    it('mode=chunking passes apiKey to aiProvider.chunk', async () => {
+      const storage = makeStorage()
+      const room = storage.createRoom()
+      const userMessage = makeUserMessage(storage, room.id)
+      const chunkSpy = vi.fn().mockResolvedValue({ chunks: [] })
+
+      const aiProvider: AIProvider = { analyze: vi.fn(), chunk: chunkSpy }
+
+      await analyzeMessage({
+        storage,
+        aiProvider,
+        roomId: room.id,
+        userMessage,
+        mode: 'chunking',
+        apiKey: 'key-456',
+      })
+
+      expect(chunkSpy).toHaveBeenCalledWith(userMessage.content, 'key-456')
+    })
+  })
 })
