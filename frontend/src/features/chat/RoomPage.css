@@ -2,12 +2,13 @@
   height: 100dvh;
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-rows: 1fr;
   gap: 1rem;
   padding: 1rem;
 }
 
 .room-page__chat {
-  min-height: 0;
+  height: 100%;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   border-radius: 28px;
