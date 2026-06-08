@@ -13,7 +13,7 @@ interface MessageListProps {
   pendingCorrections: string[]
   typingNames: string[]
   onAddReaction: (messageId: string, emoji: string) => void
-  onAnalyze: (messageId: string) => void
+  onAnalyze: (messageId: string, mode?: 'normal' | 'chunking') => void
   onRemoveReaction: (messageId: string, emoji: string) => void
 }
 

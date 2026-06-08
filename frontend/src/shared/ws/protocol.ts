@@ -19,6 +19,14 @@ export interface RoomMessage {
   replyToMessageId?: string
   error?: boolean
   errorReason?: string
+  chunking?: {
+    chunks: Array<{
+      text: string
+      analysis: string
+    }>
+    error?: boolean
+    errorReason?: string
+  }
   createdAt: string
   reactions: Record<string, string[]>
 }
@@ -27,6 +35,7 @@ export type ServerEvent =
   | { type: 'room_snapshot'; roomId: string; roomCode: string; expiresAt: string; participantId: string; participants: ParticipantPresence[]; messages: RoomMessage[] }
   | { type: 'participant_update'; participants: ParticipantPresence[] }
   | { type: 'message_created'; message: RoomMessage }
+  | { type: 'message_update'; messageId: string; chunking?: { chunks: Array<{ text: string; analysis: string }>; error?: boolean; errorReason?: string }; error?: boolean; errorReason?: string }
   | { type: 'correction_started'; messageId: string }
   | { type: 'correction_finished'; messageId: string; error?: boolean; errorReason?: string }
   | { type: 'typing'; participantId: string; name: string; isTyping: boolean }
@@ -38,7 +47,7 @@ export type ServerEvent =
 export type ClientEvent =
   | { type: 'join_room'; roomCode: string; participantId: string; name: string }
   | { type: 'send_message'; content: string; apiKey?: string; analyze?: boolean; customInstructions?: string }
-  | { type: 'analyze_message'; messageId: string; apiKey?: string; customInstructions?: string }
+  | { type: 'analyze_message'; messageId: string; mode?: 'normal' | 'chunking'; apiKey?: string; customInstructions?: string }
   | { type: 'set_agent_mode'; agentMode: AgentMode }
   | { type: 'typing'; isTyping: boolean }
   | { type: 'add_reaction'; messageId: string; emoji: string }

@@ -14,7 +14,7 @@ interface MessageBubbleProps {
   message: RoomMessage
   participantId: string
   onAddReaction: (emoji: string) => void
-  onAnalyze: (messageId: string) => void
+  onAnalyze: (messageId: string, mode?: 'normal' | 'chunking') => void
   onRemoveReaction: (emoji: string) => void
 }
 
@@ -31,13 +31,17 @@ export function MessageBubble(props: MessageBubbleProps) {
       )}
       <div className="message-bubble__card">
         <p className="message-bubble__content">{props.message.content}</p>
-        {props.canAnalyze ? <Button variant="link" className="message-bubble__action" onClick={() => props.onAnalyze(props.message.id)} type="button">Analisar com agente</Button> : null}
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {props.canAnalyze ? <Button variant="link" className="message-bubble__action" onClick={() => props.onAnalyze(props.message.id, 'normal')} type="button">Analisar com agente</Button> : null}
+          {props.canAnalyze ? <Button variant="link" className="message-bubble__action" onClick={() => props.onAnalyze(props.message.id, 'chunking')} type="button">Chunking</Button> : null}
+        </div>
         {props.isPending ? <p className="message-bubble__status">Coach analisando...</p> : null}
         {props.correction && props.correction.error
           ? <ErrorBlock message={props.message} onAnalyze={props.onAnalyze} />
           : props.correction
           ? <CorrectionBlock correction={props.correction} originalMessage={props.message} />
           : null}
+        {props.message.chunking ? <ChunkingBlock chunking={props.message.chunking} messageId={props.message.id} onAnalyze={props.onAnalyze} /> : null}
         <ReactionBar
           reactions={props.message.reactions}
           participantId={props.participantId}
@@ -98,11 +102,61 @@ function CorrectionBlock({ correction, originalMessage }: { correction: RoomMess
   )
 }
 
-function ErrorBlock({ message, onAnalyze }: { message: RoomMessage; onAnalyze: (id: string) => void }) {
+function ErrorBlock({ message, onAnalyze }: { message: RoomMessage; onAnalyze: (id: string, mode?: 'normal' | 'chunking') => void }) {
   return (
     <div className="message-bubble__error">
       <p className="message-bubble__error-text">Analise indisponivel.</p>
-      <Button variant="link" className="message-bubble__action" onClick={() => onAnalyze(message.id)} type="button">Analisar</Button>
+      <Button variant="link" className="message-bubble__action" onClick={() => onAnalyze(message.id, 'normal')} type="button">Analisar</Button>
+    </div>
+  )
+}
+
+function ChunkingBlock({ chunking, messageId, onAnalyze }: { chunking: RoomMessage['chunking']; messageId: string; onAnalyze: (id: string, mode?: 'normal' | 'chunking') => void }) {
+  const [expanded, setExpanded] = useState(true)
+
+  if (!chunking) return null
+
+  return (
+    <div className="message-bubble__chunking">
+      <div className="message-bubble__chunking-header">
+        <span className="message-bubble__chunking-badge">CHUNKING</span>
+        <button
+          className="message-bubble__chunking-toggle"
+          onClick={() => setExpanded(!expanded)}
+          type="button"
+          aria-label={expanded ? 'Esconder análise' : 'Exibir análise'}
+        >
+          {expanded ? '−' : '+'}
+        </button>
+      </div>
+
+      {expanded && (
+        <>
+          {chunking.error ? (
+            <>
+              <p className="message-bubble__error-text">Análise indisponível.</p>
+              <Button variant="link" className="message-bubble__action" onClick={() => onAnalyze(messageId, 'chunking')} type="button">Analisar</Button>
+            </>
+          ) : (
+            <table className="message-bubble__chunking-table">
+              <thead>
+                <tr>
+                  <th>Chunk</th>
+                  <th>Tradução</th>
+                </tr>
+              </thead>
+              <tbody>
+                {chunking.chunks.map((chunk, idx) => (
+                  <tr key={idx}>
+                    <td>{chunk.text}</td>
+                    <td>{chunk.analysis}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
     </div>
   )
 }

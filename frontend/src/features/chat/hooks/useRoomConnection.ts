@@ -56,10 +56,11 @@ export function useRoomConnection(args: UseRoomConnectionArgs) {
     })
   }
 
-  function analyzeMessage(messageId: string) {
+  function analyzeMessage(messageId: string, mode?: 'normal' | 'chunking') {
     sendEvent({
       type: 'analyze_message',
       messageId,
+      mode,
       apiKey: argsRef.current.apiKey.trim() || undefined,
       customInstructions: argsRef.current.customInstructions.trim() || undefined,
     })

@@ -3,6 +3,7 @@ import type { AgentMode, ConnectionStatus, ParticipantPresence, RoomMessage, Ser
 
 type SnapshotEvent = Extract<ServerEvent, { type: 'room_snapshot' }>
 type ParticipantUpdateEvent = Extract<ServerEvent, { type: 'participant_update' }>
+type MessageUpdateEvent = Extract<ServerEvent, { type: 'message_update' }>
 
 export interface RoomState {
   roomId: string
@@ -23,6 +24,7 @@ interface RoomActions {
   applySnapshot: (event: SnapshotEvent) => void
   applyParticipantUpdate: (event: ParticipantUpdateEvent) => void
   addMessage: (message: RoomMessage) => void
+  updateMessageChunking: (event: MessageUpdateEvent) => void
   setTyping: (participantId: string, name: string, isTyping: boolean) => void
   addPendingCorrection: (messageId: string) => void
   removePendingCorrection: (messageId: string) => void
@@ -69,6 +71,11 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
         : s.pendingCorrections,
     }
   }),
+
+  updateMessageChunking: (event) => set((s) => ({
+    messages: s.messages.map((m) => m.id === event.messageId ? { ...m, chunking: event.chunking } : m),
+    pendingCorrections: s.pendingCorrections.filter((id) => id !== event.messageId),
+  })),
 
   setTyping: (participantId, name, isTyping) => set((s) => {
     const typing = { ...s.typing }

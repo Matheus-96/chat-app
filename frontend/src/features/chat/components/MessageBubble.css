@@ -198,3 +198,75 @@
 .message-bubble__correction-button:active {
   opacity: 0.8;
 }
+
+.message-bubble__chunking {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  border-radius: 16px;
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.message-bubble__chunking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.message-bubble__chunking-badge {
+  display: inline-block;
+  padding: 0.35rem 0.65rem;
+  background: #A855F7;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.message-bubble__chunking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.message-bubble__chunking-table th,
+.message-bubble__chunking-table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.message-bubble__chunking-table th {
+  background: rgba(168, 85, 247, 0.1);
+  color: #A855F7;
+  font-weight: 600;
+}
+
+.message-bubble__chunking-table tr:last-child td {
+  border-bottom: none;
+}
+
+.message-bubble__chunking-toggle {
+  background: none;
+  border: none;
+  color: #A855F7;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.message-bubble__chunking-toggle:hover {
+  opacity: 0.8;
+}
