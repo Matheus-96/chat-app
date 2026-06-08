@@ -4,7 +4,10 @@ import { buildRoomLink } from '../../shared/config'
 import { requestNotificationPermission } from '../../shared/notifications'
 import { loadStoredAgentMode, loadStoredProfile, saveProfile } from '../../shared/storage/profile'
 import { Composer } from './components/Composer'
+import { Header } from './components/Header'
+import { LeftNav } from './components/LeftNav'
 import { MessageList } from './components/MessageList'
+import { SettingsDrawer } from './components/SettingsDrawer'
 import { Sidebar } from './components/Sidebar'
 import { useRoomConnection } from './hooks/useRoomConnection'
 import './RoomPage.css'
@@ -16,6 +19,7 @@ export function RoomPage() {
   const [profile] = useState(() => loadStoredProfile())
   const [customInstructions, setCustomInstructions] = useState(profile.customInstructions)
   const [notice, setNotice] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const { state, actions } = useRoomConnection({
     roomCode: normalizedCode,
     name: profile.name,
@@ -57,22 +61,13 @@ export function RoomPage() {
 
   return (
     <main className="room-page">
-      <Sidebar
-        agentMode={state.agentMode}
-        apiKey={profile.apiKey}
-        connection={state.connection}
-        customInstructions={customInstructions}
-        expiresAt={state.expiresAt}
-        name={profile.name}
-        notice={notice}
-        participants={state.participants}
-        roomCode={state.roomCode || normalizedCode}
-        onCopyLink={() => void handleCopyLink()}
-        onCustomInstructionsChange={handleCustomInstructionsChange}
-        onModeChange={actions.setAgentMode}
-        onReconnect={actions.reconnect}
-      />
+      <LeftNav roomCode={state.roomCode || normalizedCode} />
       <section className="room-page__chat">
+        <Header
+          participants={state.participants}
+          roomCode={state.roomCode || normalizedCode}
+          onSettingsToggle={() => setSettingsOpen(!settingsOpen)}
+        />
         {state.error ? <p className="room-page__error">{state.error}</p> : null}
         <MessageList
           agentMode={state.agentMode}
@@ -93,6 +88,23 @@ export function RoomPage() {
           onTyping={actions.sendTyping}
         />
       </section>
+      <SettingsDrawer isOpen={settingsOpen} onClose={() => setSettingsOpen(false)}>
+        <Sidebar
+          agentMode={state.agentMode}
+          apiKey={profile.apiKey}
+          connection={state.connection}
+          customInstructions={customInstructions}
+          expiresAt={state.expiresAt}
+          name={profile.name}
+          notice={notice}
+          participants={state.participants}
+          roomCode={state.roomCode || normalizedCode}
+          onCopyLink={() => void handleCopyLink()}
+          onCustomInstructionsChange={handleCustomInstructionsChange}
+          onModeChange={actions.setAgentMode}
+          onReconnect={actions.reconnect}
+        />
+      </SettingsDrawer>
     </main>
   )
 }

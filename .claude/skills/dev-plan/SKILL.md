@@ -120,4 +120,4 @@ Salve o plano em `docs/plans/<feature-slug>.md`.
 ## Após rascunhar
 
 Apresente o plano e pergunte: "Está correto o escopo? Há decisões arquiteturais a adicionar ou corrigir?"
-Aplique correções, salve o arquivo. Opcionalmente sugira `/to-issues` para converter tasks em tickets.
+Aplique correções, salve o arquivo.
