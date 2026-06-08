@@ -35,9 +35,10 @@ export function MessageList(props: MessageListProps) {
   return (
     <section className="message-list" ref={containerRef}>
       {roots.length === 0 ? <div className="message-list__empty">Crie a primeira mensagem da sala para iniciar a conversa.</div> : null}
-      {messageGroups.map((group) => (
-        <div key={group.label}>
-          <div className="message-list__date-separator">{group.label}</div>
+      {messageGroups.map((group, idx) => (
+        <>
+          {idx > 0 && <div key={`separator-${group.label}`} className="message-list__date-separator">{group.label}</div>}
+          {idx === 0 && <div key={`first-separator-${group.label}`} className="message-list__date-separator">{group.label}</div>}
           {group.messageIds.map((messageId) => {
             const message = messageMap.get(messageId)
             if (!message) return null
@@ -56,7 +57,7 @@ export function MessageList(props: MessageListProps) {
               />
             )
           })}
-        </div>
+        </>
       ))}
       {props.typingNames.length > 0 ? <TypingIndicator names={props.typingNames} /> : null}
       <AutomaticModeChip agentMode={props.agentMode} />
