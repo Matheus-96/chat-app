@@ -22,3 +22,33 @@
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+.message-list__date-separator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  margin: 0.5rem 0;
+}
+
+.message-list__date-separator::before,
+.message-list__date-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.message-list__date-separator::before {
+  margin-right: 0.75rem;
+}
+
+.message-list__date-separator::after {
+  margin-left: 0.75rem;
+}

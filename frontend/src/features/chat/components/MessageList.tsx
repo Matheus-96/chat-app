@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
+import { groupMessagesByDate } from '../../../lib/dateGrouping'
 import type { AgentMode, RoomMessage } from '../../../shared/ws/protocol'
+import { AutomaticModeChip } from './AutomaticModeChip'
 import { MessageBubble } from './MessageBubble'
+import { TypingIndicator } from './TypingIndicator'
 import './MessageList.css'
 
 interface MessageListProps {
@@ -23,28 +26,41 @@ export function MessageList(props: MessageListProps) {
     containerRef.current?.scrollTo({ top: containerRef.current.scrollHeight, behavior: 'smooth' })
   }, [props.messages, props.typingNames])
 
+  const messageGroups = groupMessagesByDate(
+    roots.map((m) => m.id),
+    (id) => new Date(roots.find((m) => m.id === id)?.createdAt || new Date().toISOString())
+  )
+  const messageMap = new Map(roots.map((m) => [m.id, m]))
+
   return (
     <section className="message-list" ref={containerRef}>
       {roots.length === 0 ? <div className="message-list__empty">Crie a primeira mensagem da sala para iniciar a conversa.</div> : null}
-      {roots.map((message) => (
-        <MessageBubble
-          canAnalyze={props.agentMode === 'manual' && message.authorId === props.participantId && !replies.has(message.id) && !props.pendingCorrections.includes(message.id)}
-          correction={replies.get(message.id)}
-          isOwn={message.authorId === props.participantId}
-          isPending={props.pendingCorrections.includes(message.id)}
-          key={message.id}
-          message={message}
-          participantId={props.participantId}
-          onAddReaction={(emoji) => props.onAddReaction(message.id, emoji)}
-          onAnalyze={props.onAnalyze}
-          onRemoveReaction={(emoji) => props.onRemoveReaction(message.id, emoji)}
-        />
+      {messageGroups.map((group) => (
+        <div key={group.label}>
+          <div className="message-list__date-separator">{group.label}</div>
+          {group.messageIds.map((messageId) => {
+            const message = messageMap.get(messageId)
+            if (!message) return null
+            return (
+              <MessageBubble
+                canAnalyze={props.agentMode === 'manual' && message.authorId === props.participantId && !replies.has(message.id) && !props.pendingCorrections.includes(message.id)}
+                correction={replies.get(message.id)}
+                isOwn={message.authorId === props.participantId}
+                isPending={props.pendingCorrections.includes(message.id)}
+                key={message.id}
+                message={message}
+                participantId={props.participantId}
+                onAddReaction={(emoji) => props.onAddReaction(message.id, emoji)}
+                onAnalyze={props.onAnalyze}
+                onRemoveReaction={(emoji) => props.onRemoveReaction(message.id, emoji)}
+              />
+            )
+          })}
+        </div>
       ))}
-      {props.typingNames.length > 0 ? <p className="message-list__typing">{formatTyping(props.typingNames)}</p> : null}
+      {props.typingNames.length > 0 ? <TypingIndicator names={props.typingNames} /> : null}
+      <AutomaticModeChip agentMode={props.agentMode} />
     </section>
   )
 }
 
-function formatTyping(names: string[]) {
-  return `${names.join(', ')} ${names.length > 1 ? 'estao' : 'esta'} digitando...`
-}
