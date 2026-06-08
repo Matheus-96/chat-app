@@ -19,6 +19,14 @@ export interface RoomMessage {
   replyToMessageId?: string
   error?: boolean
   errorReason?: string
+  chunking?: {
+    chunks: Array<{
+      text: string
+      analysis: string
+    }>
+    error?: boolean
+    errorReason?: string
+  }
   createdAt: string
   reactions: Record<string, string[]>
 }

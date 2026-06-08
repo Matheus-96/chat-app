@@ -13,10 +13,35 @@ export async function analyzeMessage(args: {
   aiProvider: AIProvider
   roomId: string
   userMessage: RoomMessage
+  mode?: 'normal' | 'chunking'
   apiKey?: string
   customInstructions?: string
 }): Promise<AnalyzeMessageResult> {
-  const { storage, aiProvider, roomId, userMessage, apiKey, customInstructions } = args
+  const { storage, aiProvider, roomId, userMessage, mode = 'normal', apiKey, customInstructions } = args
+
+  if (mode === 'chunking') {
+    try {
+      const chunkingResult = await aiProvider.chunk(userMessage.content, apiKey)
+
+      const message = storage.getRoomMessage(roomId, userMessage.id)
+      if (!message) throw new Error('User message not found.')
+
+      message.chunking = chunkingResult
+      return { message }
+    } catch (error) {
+      const errorReason = error instanceof AIProviderError ? error.errorReason : 'timeout'
+
+      const message = storage.getRoomMessage(roomId, userMessage.id)
+      if (!message) throw new Error('User message not found.')
+
+      message.chunking = {
+        chunks: [],
+        error: true,
+        errorReason,
+      }
+      return { message, error: true, errorReason }
+    }
+  }
 
   try {
     const feedback = await aiProvider.analyze(userMessage.content, apiKey, customInstructions)

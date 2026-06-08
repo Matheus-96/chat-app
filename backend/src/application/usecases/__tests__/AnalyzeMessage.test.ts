@@ -18,6 +18,7 @@ describe('analyzeMessage', () => {
 
     const aiProvider: AIProvider = {
       analyze: vi.fn().mockResolvedValue({ correctedText: 'I went to the store.', explanation: '"went" is the past tense of "go".' }),
+      chunk: vi.fn(),
     }
 
     const result = await analyzeMessage({ storage, aiProvider, roomId: room.id, userMessage, apiKey: 'key-123' })
@@ -37,6 +38,7 @@ describe('analyzeMessage', () => {
 
     const aiProvider: AIProvider = {
       analyze: vi.fn().mockRejectedValue(new AIProviderError('timeout', 'Request timed out')),
+      chunk: vi.fn(),
     }
 
     const result = await analyzeMessage({ storage, aiProvider, roomId: room.id, userMessage })
@@ -56,6 +58,7 @@ describe('analyzeMessage', () => {
 
     const aiProvider: AIProvider = {
       analyze: vi.fn().mockRejectedValue(new AIProviderError('invalid_key', 'Auth failed')),
+      chunk: vi.fn(),
     }
 
     const result = await analyzeMessage({ storage, aiProvider, roomId: room.id, userMessage })
@@ -73,6 +76,7 @@ describe('analyzeMessage', () => {
 
     const aiProvider: AIProvider = {
       analyze: vi.fn().mockRejectedValue(new AIProviderError('rate_limited', 'Rate limit exceeded')),
+      chunk: vi.fn(),
     }
 
     const result = await analyzeMessage({ storage, aiProvider, roomId: room.id, userMessage })
@@ -90,6 +94,7 @@ describe('analyzeMessage', () => {
 
     const aiProvider: AIProvider = {
       analyze: vi.fn().mockResolvedValue({ correctedText: 'Fixed.', explanation: 'Reason.' }),
+      chunk: vi.fn(),
     }
 
     await analyzeMessage({ storage, aiProvider, roomId: room.id, userMessage })
@@ -103,7 +108,7 @@ describe('analyzeMessage', () => {
     const userMessage = makeUserMessage(storage, room.id)
     const analyzeSpy = vi.fn().mockResolvedValue({ correctedText: 'Fixed.', explanation: 'Reason.' })
 
-    const aiProvider: AIProvider = { analyze: analyzeSpy }
+    const aiProvider: AIProvider = { analyze: analyzeSpy, chunk: vi.fn() }
 
     await analyzeMessage({ storage, aiProvider, roomId: room.id, userMessage, customInstructions: 'focus on prepositions' })
 
@@ -116,7 +121,7 @@ describe('analyzeMessage', () => {
     const userMessage = makeUserMessage(storage, room.id)
     const analyzeSpy = vi.fn().mockResolvedValue({ correctedText: 'Fixed.', explanation: 'Reason.' })
 
-    const aiProvider: AIProvider = { analyze: analyzeSpy }
+    const aiProvider: AIProvider = { analyze: analyzeSpy, chunk: vi.fn() }
 
     await analyzeMessage({ storage, aiProvider, roomId: room.id, userMessage })
 

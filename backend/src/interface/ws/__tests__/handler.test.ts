@@ -5,7 +5,7 @@ import { InMemoryAdapter } from '../../../infrastructure/storage/InMemoryAdapter
 import { RateLimiter } from '../../../infrastructure/RateLimiter.js'
 import type { AIProvider } from '../../../infrastructure/ai/AIProvider.js'
 
-const makeAiProvider = (): AIProvider => ({ analyze: vi.fn() })
+const makeAiProvider = (): AIProvider => ({ analyze: vi.fn(), chunk: vi.fn() })
 
 function makeSocket() {
   const received: Array<Record<string, unknown>> = []

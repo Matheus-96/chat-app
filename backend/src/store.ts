@@ -22,6 +22,14 @@ export interface RoomMessage {
   content: string
   explanation?: string
   replyToMessageId?: string
+  chunking?: {
+    chunks: Array<{
+      text: string
+      analysis: string
+    }>
+    error?: boolean
+    errorReason?: string
+  }
   createdAt: string
   visibility: MessageVisibility
   visibleToParticipantId?: string

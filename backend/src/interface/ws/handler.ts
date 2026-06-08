@@ -12,6 +12,7 @@ type ServerEvent =
   | { type: 'room_snapshot'; roomId: string; roomCode: string; expiresAt: string; participantId: string; participants: ParticipantPresence[]; messages: RoomMessage[] }
   | { type: 'participant_update'; participants: ParticipantPresence[] }
   | { type: 'message_created'; message: RoomMessage }
+  | { type: 'message_update'; messageId: string; chunking?: { chunks: Array<{ text: string; analysis: string }>; error?: boolean; errorReason?: string }; error?: boolean; errorReason?: string }
   | { type: 'correction_started'; messageId: string }
   | { type: 'correction_finished'; messageId: string; error?: boolean; errorReason?: string }
   | { type: 'typing'; participantId: string; name: string; isTyping: boolean }
@@ -38,6 +39,7 @@ const sendMessageSchema = z.object({
 const analyzeMessageSchema = z.object({
   type: z.literal('analyze_message'),
   messageId: z.string().min(1),
+  mode: z.enum(['normal', 'chunking']).optional(),
   apiKey: z.string().trim().min(1).optional(),
   customInstructions: z.string().max(250).optional(),
 })
@@ -89,10 +91,24 @@ async function runCoachAnalysis(args: {
   aiProvider: AIProvider
   roomId: string
   userMessage: RoomMessage
+  mode?: 'normal' | 'chunking'
   apiKey?: string
   customInstructions?: string
 }) {
-  const { wss, storage, aiProvider, roomId, userMessage, apiKey, customInstructions } = args
+  const { wss, storage, aiProvider, roomId, userMessage, mode = 'normal', apiKey, customInstructions } = args
+
+  if (mode === 'chunking') {
+    const result = await analyzeMessage({ storage, aiProvider, roomId, userMessage, mode: 'chunking', apiKey, customInstructions })
+
+    broadcastRoom(wss, storage, roomId, {
+      type: 'message_update',
+      messageId: result.message.id,
+      chunking: result.message.chunking,
+      error: result.error,
+      errorReason: result.errorReason,
+    })
+    return
+  }
 
   broadcastRoom(wss, storage, roomId, { type: 'correction_started', messageId: userMessage.id })
 
@@ -212,9 +228,11 @@ export function createWsHandler(wss: WebSocketServer, storage: StorageAdapter, r
       const existing = storage.getRoomMessage(conn.roomId, maybeAnalyze.data.messageId)
       if (!existing) { sendError(socket, 'Mensagem nao encontrada para analise.'); return }
       if (existing.role !== 'user' || existing.authorId !== conn.participantId) { sendError(socket, 'Voce so pode analisar mensagens proprias.'); return }
-      if (storage.hasReplyForMessage(conn.roomId, maybeAnalyze.data.messageId)) { sendError(socket, 'Esta mensagem ja foi analisada.'); return }
 
-      await runCoachAnalysis({ wss, storage, aiProvider, roomId: conn.roomId, userMessage: existing, apiKey: maybeAnalyze.data.apiKey, customInstructions: maybeAnalyze.data.customInstructions })
+      const mode = maybeAnalyze.data.mode ?? 'normal'
+      if (mode === 'normal' && storage.hasReplyForMessage(conn.roomId, maybeAnalyze.data.messageId)) { sendError(socket, 'Esta mensagem ja foi analisada.'); return }
+
+      await runCoachAnalysis({ wss, storage, aiProvider, roomId: conn.roomId, userMessage: existing, mode, apiKey: maybeAnalyze.data.apiKey, customInstructions: maybeAnalyze.data.customInstructions })
     })
 
     socket.on('close', () => {
